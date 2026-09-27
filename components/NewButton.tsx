@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const options = [
   { icon: "📝", label: "Write a Note" },
@@ -9,6 +10,7 @@ const options = [
 ];
 
 export default function NewButton() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -35,7 +37,12 @@ export default function NewButton() {
               <button
                 key={opt.label}
                 className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-moya-text hover:bg-moya-bg text-left focus-ring"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false);
+                  if (opt.label === "Write a Note") {
+                    router.push("/notes");
+                  }
+                }}
               >
                 <span aria-hidden>{opt.icon}</span>
                 {opt.label}
