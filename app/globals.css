@@ -1,36 +1,54 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@layer utilities {
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #EFEAE0;
-    border-radius: 10px;
-  }
+* {
+  box-sizing: border-box;
 }
 
-[contenteditable]:empty:before {
-  content: attr(placeholder);
-  color: #9CA3AF;
-  pointer-events: none;
-  display: block;
+html,
+body {
+  height: 100%;
 }
 
-/* Responsif Gambar di Dalam Teks Catatan */
-.editor-content img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.75rem;
-  margin: 0.75rem 0;
-  border: 1px solid #EFEAE0;
-  display: block;
+body {
+  background-color: #f8f6fb;
+  color: #443e54;
 }
 
-/* Penyesuaian Sentuhan di Layar HP */
-@media (max-width: 640px) {
-  button, input, select {
-    min-height: 38px; /* Memudahkan ketukan jari di HP */
+::selection {
+  background-color: #e7dcfb;
+}
+
+/* thin, hand-drawn feeling scrollbars — a quiet nod to a ball of yarn */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #ddd3ee;
+  border-radius: 999px;
+}
+
+.thread-divider {
+  border: none;
+  border-top: 1.5px dashed #d9cdec;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid #8874c2;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
