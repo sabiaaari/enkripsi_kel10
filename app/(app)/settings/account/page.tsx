@@ -1,3 +1,4 @@
+import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 
 export default function AccountPage() {
@@ -21,9 +22,12 @@ export default function AccountPage() {
           Update password
         </button>
       </div>
-      <button className="rounded-xl border border-moya-border bg-moya-surface text-sm text-[#c06b7e] font-medium px-5 py-2.5 hover:bg-moya-pink/20 transition-colors focus-ring">
+      <Link
+        href="/"
+        className="inline-block rounded-xl border border-moya-border bg-moya-surface text-sm text-[#c06b7e] font-medium px-5 py-2.5 hover:bg-moya-pink/20 transition-colors focus-ring"
+      >
         Log out
-      </button>
+      </Link>
     </div>
   );
 }

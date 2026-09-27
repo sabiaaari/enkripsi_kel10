@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -28,14 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
-      <body className="font-body">
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 min-w-0 px-6 py-8 md:px-10 md:py-10">
-            <div className="mx-auto w-full max-w-4xl">{children}</div>
-          </main>
-        </div>
-      </body>
+      <body className="font-body bg-moya-bg text-moya-text">{children}</body>
     </html>
   );
 }

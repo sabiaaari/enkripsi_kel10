@@ -15,7 +15,7 @@ type NavSection = {
 };
 
 const sections: NavSection[] = [
-  { label: "Home", href: "/", icon: "🏠" },
+  { label: "Home", href: "/dashboard", icon: "🏠" },
   {
     label: "Notes",
     href: "/notes",
@@ -71,13 +71,13 @@ export default function Sidebar() {
     setOpen((prev) => ({ ...prev, [label]: !prev[label] }));
 
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
   return (
     <>
       {/* mobile top bar */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-moya-border bg-moya-surface sticky top-0 z-30">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <YarnMark size={22} />
           <span className="font-display text-lg text-moya-text">MOYA</span>
         </Link>
@@ -99,7 +99,7 @@ export default function Sidebar() {
         `}
       >
         <div className="px-5 pt-7 pb-3 overflow-y-auto">
-          <Link href="/" className="hidden md:flex items-center gap-2 px-1 mb-1">
+          <Link href="/dashboard" className="hidden md:flex items-center gap-2 px-1 mb-1">
             <YarnMark size={26} />
             <span className="font-display text-xl text-moya-text">MOYA</span>
           </Link>
