@@ -3,7 +3,6 @@ import { FileItem } from "@/lib/data";
 const typeIcon: Record<FileItem["type"], string> = {
   image: "🖼️",
   document: "📄",
-  handwritten: "✍️",
 };
 
 export default function FileCard({ file }: { file: FileItem }) {
@@ -13,7 +12,9 @@ export default function FileCard({ file }: { file: FileItem }) {
         {typeIcon[file.type]}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-moya-text truncate">{file.name}</p>
+        <p className="text-sm text-moya-text truncate">
+          {file.file_name || file.name || "Untitled File"}
+        </p>
         <p className="text-xs text-moya-muted mt-0.5">
           {file.size} · {file.updatedAt}
         </p>

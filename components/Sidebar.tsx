@@ -7,77 +7,85 @@ import NewButton from "./NewButton";
 import YarnMark from "./YarnMark";
 
 type NavChild = { label: string; href: string };
-type NavSection = {
-  label: string;
-  href: string;
-  icon: string;
-  children?: NavChild[];
-};
 
-const sections: NavSection[] = [
-  { label: "Home", href: "/", icon: "🏠" },
-  {
-    label: "Notes",
-    href: "/notes",
-    icon: "📝",
-    children: [
-      { label: "All Notes", href: "/notes" },
-      { label: "Pinned", href: "/notes/pinned" },
-      { label: "Categories", href: "/notes/categories" },
-    ],
-  },
-  {
-    label: "Files",
-    href: "/files",
-    icon: "📎",
-    children: [
-      { label: "Images", href: "/files/images" },
-      { label: "Documents", href: "/files/documents" },
-      { label: "Handwritten", href: "/files/handwritten" },
-    ],
-  },
-  {
-    label: "Private",
-    href: "/private",
-    icon: "🔒",
-    children: [
-      { label: "Private Notes", href: "/private/notes" },
-      { label: "Private Files", href: "/private/files" },
-    ],
-  },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: "⚙️",
-    children: [
-      { label: "Profile", href: "/settings/profile" },
-      { label: "Appearance", href: "/settings/appearance" },
-      { label: "Account", href: "/settings/account" },
-    ],
-  },
-];
+type AccordionSection = {
+  label: string;
+  icon: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  basePath: string;
+  children: NavChild[];
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [open, setOpen] = useState<Record<string, boolean>>({
-    Notes: pathname.startsWith("/notes"),
-    Files: pathname.startsWith("/files"),
-    Private: pathname.startsWith("/private"),
-    Settings: pathname.startsWith("/settings"),
-  });
+
+  // 1. State Pengendali untuk mengontrol visibilitas masing-masing accordion menu
+  const [isNotesOpen, setIsNotesOpen] = useState(pathname.startsWith("/notes"));
+  const [isFilesOpen, setIsFilesOpen] = useState(pathname.startsWith("/files"));
+  const [isPrivateOpen, setIsPrivateOpen] = useState(pathname.startsWith("/private"));
+  const [isSettingsOpen, setIsSettingsOpen] = useState(pathname.startsWith("/settings"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const toggle = (label: string) =>
-    setOpen((prev) => ({ ...prev, [label]: !prev[label] }));
+  // Definisi daftar accordion menu dengan state dan fungsi toggle masing-masing
+  const accordionSections: AccordionSection[] = [
+    {
+      label: "Notes",
+      icon: "📝",
+      isOpen: isNotesOpen,
+      onToggle: () => setIsNotesOpen((prev) => !prev),
+      basePath: "/notes",
+      children: [
+        { label: "All Notes", href: "/notes" },
+        { label: "Pinned", href: "/notes/pinned" },
+        { label: "Categories", href: "/notes/categories" },
+      ],
+    },
+    {
+      label: "Files",
+      icon: "📎",
+      isOpen: isFilesOpen,
+      onToggle: () => setIsFilesOpen((prev) => !prev),
+      basePath: "/files",
+      children: [
+        { label: "Documents", href: "/files/documents" },
+      ],
+    },
+    {
+      label: "Private",
+      icon: "🔒",
+      isOpen: isPrivateOpen,
+      onToggle: () => setIsPrivateOpen((prev) => !prev),
+      basePath: "/private",
+      children: [
+        { label: "Private Notes", href: "/private/notes" },
+        { label: "Private Files", href: "/private/files" },
+      ],
+    },
+    {
+      label: "Settings",
+      icon: "⚙️",
+      isOpen: isSettingsOpen,
+      onToggle: () => setIsSettingsOpen((prev) => !prev),
+      basePath: "/settings",
+      children: [
+        { label: "Account", href: "/settings/account" },
+        { label: "Crypto Lab", href: "/settings/crypto-lab" },
+      ],
+    },
+  ];
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  // Sembunyikan Sidebar jika pengunjung sedang berada di Landing Page (/), /login, atau /register
+  const hideSidebarRoutes = ["/", "/landing", "/login", "/register"];
+  if (hideSidebarRoutes.includes(pathname)) {
+    return null;
+  }
 
   return (
     <>
-      {/* mobile top bar */}
+      {/* Mobile Top Bar */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-moya-border bg-moya-surface sticky top-0 z-30">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <YarnMark size={22} />
           <span className="font-display text-lg text-moya-text">MOYA</span>
         </Link>
@@ -99,52 +107,78 @@ export default function Sidebar() {
         `}
       >
         <div className="px-5 pt-7 pb-3 overflow-y-auto">
-          <Link href="/" className="hidden md:flex items-center gap-2 px-1 mb-1">
+          <Link href="/dashboard" className="hidden md:flex items-center gap-2 px-1 mb-1">
             <YarnMark size={26} />
             <span className="font-display text-xl text-moya-text">MOYA</span>
           </Link>
           <p className="hidden md:block text-xs text-moya-muted px-1 mb-7 tracking-wide">
-            make own yarns
+            Make Own Yarns
           </p>
 
           <nav className="flex flex-col gap-1">
-            {sections.map((section) => (
+            {/* Menu Dashboard (Direct Link) */}
+            <div>
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileOpen(false)}
+                className={`
+                  flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[15px]
+                  transition-colors focus-ring
+                  ${
+                    pathname === "/dashboard"
+                      ? "bg-moya-soft text-moya-primarydark font-medium"
+                      : "text-moya-text hover:bg-moya-bg"
+                  }
+                `}
+              >
+                <span aria-hidden>🏠</span>
+                <span>Dashboard</span>
+              </Link>
+            </div>
+
+            {/* Menu Accordion: Notes, Files, Private, Settings */}
+            {accordionSections.map((section) => (
               <div key={section.label}>
-                <div className="flex items-center">
-                  <Link
-                    href={section.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`
-                      flex-1 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[15px]
-                      transition-colors focus-ring
-                      ${
-                        isActive(section.href)
-                          ? "bg-moya-soft text-moya-primarydark font-medium"
-                          : "text-moya-text hover:bg-moya-bg"
-                      }
-                    `}
-                  >
+                {/* 2. Tombol Induk (Bukan Link, tanpa href, memicu onToggle) */}
+                <button
+                  type="button"
+                  onClick={section.onToggle}
+                  aria-expanded={section.isOpen}
+                  className={`
+                    w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl text-[15px]
+                    transition-colors focus-ring text-left select-none
+                    ${
+                      pathname.startsWith(section.basePath)
+                        ? "bg-moya-soft text-moya-primarydark font-medium"
+                        : "text-moya-text hover:bg-moya-bg"
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2.5">
                     <span aria-hidden>{section.icon}</span>
                     <span>{section.label}</span>
-                  </Link>
-                  {section.children && (
-                    <button
-                      onClick={() => toggle(section.label)}
-                      aria-label={`Toggle ${section.label}`}
-                      aria-expanded={open[section.label]}
-                      className="px-2 py-2.5 text-moya-muted hover:text-moya-text focus-ring rounded-lg"
-                    >
-                      <span
-                        className={`inline-block transition-transform text-xs ${
-                          open[section.label] ? "rotate-180" : ""
-                        }`}
-                      >
-                        ▾
-                      </span>
-                    </button>
-                  )}
-                </div>
-                {section.children && open[section.label] && (
+                  </div>
+
+                  {/* 4. Animasi Ikon Panah (Chevron): Menghadap ke kanan saat tertutup (rotate-0), ke bawah saat terbuka (rotate-90) */}
+                  <svg
+                    className={`w-3.5 h-3.5 text-moya-muted transition-transform duration-200 ${
+                      section.isOpen ? "rotate-90" : "rotate-0"
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+
+                {/* 3. Logika Conditional Rendering: Sub-menu hanya di-render saat isOpen bernilai true */}
+                {section.isOpen && (
                   <div className="ml-9 mt-0.5 mb-1 flex flex-col gap-0.5 border-l border-moya-border pl-3">
                     {section.children.map((child) => (
                       <Link

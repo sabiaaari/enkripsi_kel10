@@ -1,76 +1,210 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import NoteCard from "@/components/NoteCard";
-import FileCard from "@/components/FileCard";
-import { notes, files } from "@/lib/data";
+import YarnMark from "@/components/YarnMark";
+import { supabase } from "@/utils/supabase";
 
-export default function HomePage() {
-  const recentNotes = notes.slice(0, 3);
-  const pinnedNotes = notes.filter((n) => n.pinned);
-  const recentFiles = files.slice(0, 3);
+export default function RootPage() {
+  const router = useRouter();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  // Logika Pengecekan Sesi (Supabase Auth):
+  // 1. Jika pengguna sudah login -> otomatis redirect ke /dashboard
+  // 2. Jika pengunjung belum login -> biarkan di root (/) untuk melihat Landing Page
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkAuthSession() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session && session.user) {
+          router.replace("/dashboard");
+          return;
+        }
+      } catch (err) {
+        console.error("Auth check error on root page:", err);
+      } finally {
+        if (isMounted) {
+          setIsCheckingAuth(false);
+        }
+      }
+    }
+
+    checkAuthSession();
+
+    // Dengarkan perubahan status autentikasi secara realtime
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && session.user) {
+        router.replace("/dashboard");
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router]);
+
+  // Loading indicator minimalis saat memeriksa sesi agar tidak terjadi kedipan (flicker)
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
+        <div className="w-8 h-8 border-3 border-moya-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-moya-muted font-medium">Checking session...</p>
+      </div>
+    );
+  }
+
+  // Tampilan Landing Page untuk pengunjung yang belum terautentikasi
   return (
-    <div>
-      <div className="mb-8">
-        <p className="text-moya-muted text-sm mb-1">Good to see you</p>
-        <h1 className="font-display text-3xl text-moya-text">
-          What are you keeping today?
-        </h1>
-      </div>
+    <div className="min-h-screen bg-moya-bg text-moya-text flex flex-col justify-between -mx-6 -my-8 md:-mx-10 md:-my-10 px-6 py-6 md:px-12 md:py-8">
+      {/* 1. Simple Navbar */}
+      <header className="flex items-center justify-between border-b border-moya-border pb-5 max-w-6xl w-full mx-auto">
+        <Link href="/" className="flex items-center gap-2.5 focus-ring rounded-lg">
+          <YarnMark size={28} />
+          <span className="font-display text-2xl font-semibold tracking-tight text-moya-text">
+            MOYA
+          </span>
+        </Link>
 
-      <div className="relative mb-9">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-moya-muted">
-          🔍
-        </span>
-        <input
-          type="text"
-          placeholder="Search notes, files, anything…"
-          className="w-full rounded-xl2 border border-moya-border bg-moya-surface pl-11 pr-4 py-3 text-sm text-moya-text placeholder:text-moya-muted focus-ring"
-        />
-      </div>
+        <nav className="flex items-center gap-3 sm:gap-5">
+          <Link
+            href="/login"
+            className="text-sm font-medium text-moya-text hover:text-moya-primarydark transition-colors px-2 py-1.5 focus-ring rounded-lg"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/register"
+            className="text-sm font-medium bg-moya-primary hover:bg-moya-primarydark text-white px-5 py-2.5 rounded-xl transition-colors shadow-card focus-ring"
+          >
+            Sign Up Free
+          </Link>
+        </nav>
+      </header>
 
-      {pinnedNotes.length > 0 && (
-        <section className="mb-9">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-lg text-moya-text">📌 Pinned Notes</h2>
-            <Link href="/notes/pinned" className="text-xs text-moya-primarydark hover:underline">
-              See all
+      {/* 2. Hero Section */}
+      <main className="max-w-5xl w-full mx-auto my-12 md:my-20 space-y-16">
+        <section className="text-center space-y-6 max-w-3xl mx-auto">
+          {/* Main Headline */}
+          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl text-moya-text leading-tight tracking-tight">
+            Your Private Thoughts,{" "}
+            <span className="text-moya-primarydark italic">Truly Private.</span>
+          </h1>
+
+          {/* Sub-headline */}
+          <p className="text-base sm:text-lg text-moya-muted max-w-2xl mx-auto leading-relaxed">
+            Even we cannot read your data. Protected with military-grade encryption
+            directly inside your browser before ever touching the internet.
+          </p>
+
+          {/* Call to Action (CTA) */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+            <Link
+              href="/register"
+              className="w-full sm:w-auto px-8 py-3.5 bg-moya-primary hover:bg-moya-primarydark text-white rounded-xl font-medium text-sm sm:text-base transition-colors shadow-soft focus-ring text-center"
+            >
+              Start Writing (Sign Up)
             </Link>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {pinnedNotes.map((n) => (
-              <NoteCard key={n.id} note={n} />
-            ))}
+            <a
+              href="#features"
+              className="w-full sm:w-auto px-7 py-3.5 bg-moya-surface hover:bg-moya-soft border border-moya-border text-moya-text rounded-xl font-medium text-sm sm:text-base transition-colors focus-ring text-center"
+            >
+              Learn About Security
+            </a>
           </div>
         </section>
-      )}
 
-      <section className="mb-9">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg text-moya-text">Recent Notes</h2>
-          <Link href="/notes" className="text-xs text-moya-primarydark hover:underline">
-            See all
+        {/* 3. Features Section */}
+        <section id="features" className="space-y-8 pt-6">
+          <div className="text-center space-y-1.5">
+            <h2 className="font-display text-2xl sm:text-3xl text-moya-text">
+              Engineered for Uncompromising Security
+            </h2>
+            <p className="text-xs sm:text-sm text-moya-muted max-w-xl mx-auto">
+              A modern architecture that ensures your privacy remains entirely in your own hands.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Card 1: Zero-Knowledge Privacy */}
+            <div className="bg-moya-surface border border-moya-border p-6 sm:p-7 rounded-xl2 shadow-soft hover:shadow-card transition-shadow space-y-3.5 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-xl bg-moya-soft flex items-center justify-center text-2xl">
+                  🔐
+                </div>
+                <h3 className="font-display text-lg font-medium text-moya-text">
+                  Zero-Knowledge Privacy
+                </h3>
+                <p className="text-xs sm:text-sm text-moya-muted leading-relaxed">
+                  No raw plaintext data ever reaches our servers. All encryption and authentication
+                  tag validation happen purely inside your client browser.
+                </p>
+              </div>
+            </div>
+
+            {/* Card 2: Local Master Password */}
+            <div className="bg-moya-surface border border-moya-border p-6 sm:p-7 rounded-xl2 shadow-soft hover:shadow-card transition-shadow space-y-3.5 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-xl bg-moya-soft flex items-center justify-center text-2xl">
+                  🧠
+                </div>
+                <h3 className="font-display text-lg font-medium text-moya-text">
+                  Local Master Password
+                </h3>
+                <p className="text-xs sm:text-sm text-moya-muted leading-relaxed">
+                  Your master password resides only in local RAM memory and is never transmitted.
+                  Encryption keys are derived via PBKDF2 with 600,000 iterations and wiped when closed.
+                </p>
+              </div>
+            </div>
+
+            {/* Card 3: Images & Notes Storage */}
+            <div className="bg-moya-surface border border-moya-border p-6 sm:p-7 rounded-xl2 shadow-soft hover:shadow-card transition-shadow space-y-3.5 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-xl bg-moya-soft flex items-center justify-center text-2xl">
+                  📁
+                </div>
+                <h3 className="font-display text-lg font-medium text-moya-text">
+                  Encrypted Notes & Files
+                </h3>
+                <p className="text-xs sm:text-sm text-moya-muted leading-relaxed">
+                  Comprehensive support for writing rich diary notes and uploading important photos or
+                  documents, fully encrypted client-side before storage.
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* 4. Simple Footer */}
+      <footer className="border-t border-moya-border pt-6 pb-2 max-w-6xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-moya-muted">
+        <div className="flex items-center gap-2">
+          <YarnMark size={16} />
+          <span>© 2026 MOYA — Make Own Yarns. Zero-Knowledge Private Workspace.</span>
+        </div>
+
+        <div className="flex items-center gap-5">
+          <a href="#features" className="hover:text-moya-text transition-colors">
+            Security
+          </a>
+          <Link href="/login" className="hover:text-moya-text transition-colors">
+            Sign In
+          </Link>
+          <Link href="/register" className="hover:text-moya-text transition-colors">
+            Sign Up
           </Link>
         </div>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {recentNotes.map((n) => (
-            <NoteCard key={n.id} note={n} />
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg text-moya-text">Recently Uploaded</h2>
-          <Link href="/files" className="text-xs text-moya-primarydark hover:underline">
-            See all
-          </Link>
-        </div>
-        <div className="grid sm:grid-cols-3 gap-3">
-          {recentFiles.map((f) => (
-            <FileCard key={f.id} file={f} />
-          ))}
-        </div>
-      </section>
+      </footer>
     </div>
   );
 }

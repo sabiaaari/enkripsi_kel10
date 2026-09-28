@@ -2,9 +2,8 @@ import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 
 const items = [
-  { href: "/settings/profile", icon: "👤", label: "Profile", desc: "Name and profile photo" },
-  { href: "/settings/appearance", icon: "🎨", label: "Appearance", desc: "Light or dark mode" },
-  { href: "/settings/account", icon: "🔑", label: "Account", desc: "Password and logout" },
+  { href: "/settings/account", icon: "🔑", label: "Account", desc: "Password and profile information" },
+  { href: "/settings/crypto-lab", icon: "🔬", label: "Cryptography Lab", desc: "Visual security comparison of cipher modes (AES-ECB vs AES-GCM)" },
 ];
 
 export default function SettingsPage() {

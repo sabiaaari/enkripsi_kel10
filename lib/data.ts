@@ -11,7 +11,8 @@ export type Note = {
 export type FileItem = {
   id: string;
   name: string;
-  type: "image" | "document" | "handwritten";
+  file_name?: string;
+  type: "image" | "document";
   size: string;
   updatedAt: string;
 };
@@ -78,9 +79,6 @@ export const files: FileItem[] = [
   { id: "f2", name: "studio-yarn-shelf.png", type: "image", size: "3.4 MB", updatedAt: "Yesterday" },
   { id: "f3", name: "thermo-syllabus.pdf", type: "document", size: "420 KB", updatedAt: "2 days ago" },
   { id: "f4", name: "lease-agreement.pdf", type: "document", size: "1.1 MB", updatedAt: "5 days ago" },
-  { id: "f5", name: "calc-notes-pg1.jpg", type: "handwritten", size: "1.8 MB", updatedAt: "Today" },
-  { id: "f6", name: "calc-notes-pg2.jpg", type: "handwritten", size: "1.7 MB", updatedAt: "Today" },
-  { id: "f7", name: "lecture-diagram.jpg", type: "handwritten", size: "2.0 MB", updatedAt: "3 days ago" },
 ];
 
 export const categoryMeta = {
