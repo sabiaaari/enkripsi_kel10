@@ -261,7 +261,6 @@ export default function PrivateFilesPage() {
             algorithm: "AES-256-GCM",
             salt: salt,
             nonce: nonce,
-            auth_tag: authTag,
           },
         ])
         .select();
