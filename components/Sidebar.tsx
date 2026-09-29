@@ -6,67 +6,80 @@ import { useState } from "react";
 import NewButton from "./NewButton";
 import YarnMark from "./YarnMark";
 
-type NavChild = { label: string; href: string };
-
-type AccordionSection = {
-  label: string;
-  icon: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  basePath: string;
-  children: NavChild[];
-};
+type NavItem =
+  | {
+      kind: "link";
+      label: string;
+      icon: string;
+      href: string;
+      isActive: boolean;
+    }
+  | {
+      kind: "accordion";
+      label: string;
+      icon: string;
+      isOpen: boolean;
+      onToggle: () => void;
+      isActive: boolean;
+      children: { label: string; href: string }[];
+    };
 
 export default function Sidebar() {
   const pathname = usePathname();
 
-  // 1. State Pengendali untuk mengontrol visibilitas masing-masing accordion menu
+  // State Pengendali untuk mengontrol visibilitas masing-masing accordion menu
   const [isNotesOpen, setIsNotesOpen] = useState(pathname.startsWith("/notes"));
-  const [isFilesOpen, setIsFilesOpen] = useState(pathname.startsWith("/files"));
   const [isPrivateOpen, setIsPrivateOpen] = useState(pathname.startsWith("/private"));
   const [isSettingsOpen, setIsSettingsOpen] = useState(pathname.startsWith("/settings"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Definisi daftar accordion menu dengan state dan fungsi toggle masing-masing
-  const accordionSections: AccordionSection[] = [
+  // Daftar item navigasi: Menu tunggal untuk Dashboard dan Public Files, serta Accordion untuk Notes, Private, Settings
+  const navItems: NavItem[] = [
     {
+      kind: "link",
+      label: "Dashboard",
+      icon: "🏠",
+      href: "/dashboard",
+      isActive: pathname === "/dashboard",
+    },
+    {
+      kind: "accordion",
       label: "Notes",
       icon: "📝",
       isOpen: isNotesOpen,
       onToggle: () => setIsNotesOpen((prev) => !prev),
-      basePath: "/notes",
+      isActive: pathname.startsWith("/notes"),
       children: [
         { label: "All Notes", href: "/notes" },
         { label: "Categories", href: "/notes/categories" },
       ],
     },
     {
-      label: "Files",
+      kind: "link",
+      label: "Public Files",
       icon: "📎",
-      isOpen: isFilesOpen,
-      onToggle: () => setIsFilesOpen((prev) => !prev),
-      basePath: "/files",
-      children: [
-        { label: "Documents", href: "/files/documents" },
-      ],
+      href: "/files/documents",
+      isActive: pathname.startsWith("/files"),
     },
     {
+      kind: "accordion",
       label: "Private",
       icon: "🔒",
       isOpen: isPrivateOpen,
       onToggle: () => setIsPrivateOpen((prev) => !prev),
-      basePath: "/private",
+      isActive: pathname.startsWith("/private"),
       children: [
         { label: "Private Notes", href: "/private/notes" },
         { label: "Private Files", href: "/private/files" },
       ],
     },
     {
+      kind: "accordion",
       label: "Settings",
       icon: "⚙️",
       isOpen: isSettingsOpen,
       onToggle: () => setIsSettingsOpen((prev) => !prev),
-      basePath: "/settings",
+      isActive: pathname.startsWith("/settings"),
       children: [
         { label: "Account", href: "/settings/account" },
         { label: "Crypto Lab", href: "/settings/crypto-lab" },
@@ -115,91 +128,88 @@ export default function Sidebar() {
           </p>
 
           <nav className="flex flex-col gap-1">
-            {/* Menu Dashboard (Direct Link) */}
-            <div>
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileOpen(false)}
-                className={`
-                  flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[15px]
-                  transition-colors focus-ring
-                  ${
-                    pathname === "/dashboard"
-                      ? "bg-moya-soft text-moya-primarydark font-medium"
-                      : "text-moya-text hover:bg-moya-bg"
-                  }
-                `}
-              >
-                <span aria-hidden>🏠</span>
-                <span>Dashboard</span>
-              </Link>
-            </div>
-
-            {/* Menu Accordion: Notes, Files, Private, Settings */}
-            {accordionSections.map((section) => (
-              <div key={section.label}>
-                {/* 2. Tombol Induk (Bukan Link, tanpa href, memicu onToggle) */}
-                <button
-                  type="button"
-                  onClick={section.onToggle}
-                  aria-expanded={section.isOpen}
-                  className={`
-                    w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl text-[15px]
-                    transition-colors focus-ring text-left select-none
-                    ${
-                      pathname.startsWith(section.basePath)
-                        ? "bg-moya-soft text-moya-primarydark font-medium"
-                        : "text-moya-text hover:bg-moya-bg"
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span aria-hidden>{section.icon}</span>
-                    <span>{section.label}</span>
-                  </div>
-
-                  {/* 4. Animasi Ikon Panah (Chevron): Menghadap ke kanan saat tertutup (rotate-0), ke bawah saat terbuka (rotate-90) */}
-                  <svg
-                    className={`w-3.5 h-3.5 text-moya-muted transition-transform duration-200 ${
-                      section.isOpen ? "rotate-90" : "rotate-0"
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+            {navItems.map((item) =>
+              item.kind === "link" ? (
+                <div key={item.label}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`
+                      flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[15px]
+                      transition-colors focus-ring
+                      ${
+                        item.isActive
+                          ? "bg-moya-soft text-moya-primarydark font-medium"
+                          : "text-moya-text hover:bg-moya-bg"
+                      }
+                    `}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
+                    <span aria-hidden>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </Link>
+                </div>
+              ) : (
+                <div key={item.label}>
+                  <button
+                    type="button"
+                    onClick={item.onToggle}
+                    aria-expanded={item.isOpen}
+                    className={`
+                      w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl text-[15px]
+                      transition-colors focus-ring text-left select-none
+                      ${
+                        item.isActive
+                          ? "bg-moya-soft text-moya-primarydark font-medium"
+                          : "text-moya-text hover:bg-moya-bg"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span aria-hidden>{item.icon}</span>
+                      <span>{item.label}</span>
+                    </div>
 
-                {/* 3. Logika Conditional Rendering: Sub-menu hanya di-render saat isOpen bernilai true */}
-                {section.isOpen && (
-                  <div className="ml-9 mt-0.5 mb-1 flex flex-col gap-0.5 border-l border-moya-border pl-3">
-                    {section.children.map((child) => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={`
-                          px-2.5 py-1.5 rounded-lg text-sm transition-colors focus-ring
-                          ${
-                            pathname === child.href
-                              ? "text-moya-primarydark font-medium"
-                              : "text-moya-muted hover:text-moya-text"
-                          }
-                        `}
-                      >
-                        {child.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                    <svg
+                      className={`w-3.5 h-3.5 text-moya-muted transition-transform duration-200 ${
+                        item.isOpen ? "rotate-90" : "rotate-0"
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+
+                  {item.isOpen && (
+                    <div className="ml-9 mt-0.5 mb-1 flex flex-col gap-0.5 border-l border-moya-border pl-3">
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={`
+                            px-2.5 py-1.5 rounded-lg text-sm transition-colors focus-ring
+                            ${
+                              pathname === child.href
+                                ? "text-moya-primarydark font-medium"
+                                : "text-moya-muted hover:text-moya-text"
+                            }
+                          `}
+                        >
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            )}
           </nav>
         </div>
 

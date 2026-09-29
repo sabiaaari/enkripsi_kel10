@@ -279,13 +279,6 @@ export default function CryptoLabPage() {
               Click the <strong>&quot;Choose Image to Test&quot;</strong> button above to load a digital image and visually see the pattern leakage of ECB mode compared to the true randomness of secure GCM mode.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="px-5 py-2.5 bg-moya-soft hover:bg-moya-primary hover:text-white text-moya-primarydark rounded-xl text-xs font-semibold transition-colors border border-moya-border"
-          >
-            Choose Image Now
-          </button>
         </div>
       ) : (
         <div className="space-y-6">
@@ -367,7 +360,7 @@ export default function CryptoLabPage() {
           {/* Save to Vault Button */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-moya-border">
             <p className="text-xs text-moya-muted">
-              Want to store this image in your private vault with AES-256-GCM encryption?
+              Want to store this image in your private vault with encryption?
             </p>
 
             <button
@@ -383,8 +376,7 @@ export default function CryptoLabPage() {
                 </>
               ) : (
                 <>
-                  <span>🛡️</span>
-                  <span>Save to Vault (AES-256-GCM)</span>
+                  <span>Save to Vault </span>
                 </>
               )}
             </button>

@@ -168,7 +168,7 @@ function UploadContent() {
 
         setSelectedFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
-        router.push("/files");
+        router.push("/files/documents");
       }
     } catch (err: any) {
       console.error("Gagal melakukan alur upload:", err);

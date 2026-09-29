@@ -269,7 +269,7 @@ export default function DashboardPage() {
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display text-lg text-moya-text">Recently Uploaded</h2>
-              <Link href="/files" className="text-xs text-moya-primarydark hover:underline">
+              <Link href="/files/documents" className="text-xs text-moya-primarydark hover:underline">
                 View all
               </Link>
             </div>
