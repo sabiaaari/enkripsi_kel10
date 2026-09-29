@@ -234,7 +234,7 @@ export default function PrivateFilesPage() {
 
       // 3. UNGGAH KE SUPABASE STORAGE (MEMATUHI ATURAN RLS DENGAN FORMAT DIREKTORI user.id):
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = `${user.id}/${Date.now()}_${safeName}`;
+      const filePath = `${user.id}/${Date.now()}_${safeName}.enc`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("diary-files")
@@ -261,6 +261,7 @@ export default function PrivateFilesPage() {
             algorithm: "AES-256-GCM",
             salt: salt,
             nonce: nonce,
+            auth_tag: authTag,
           },
         ])
         .select();
