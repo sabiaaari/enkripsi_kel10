@@ -186,7 +186,7 @@ function UploadContent() {
         title={isPrivate ? "Upload Encrypted File (Private)" : "Upload File"}
       />
 
-      <div className="bg-moya-surface border border-moya-border p-6 sm:p-8 rounded-xl2 shadow-soft max-w-xl mx-auto space-y-5">
+      <div className="bg-moya-surface border border-moya-border p-4 sm:p-6 md:p-8 rounded-xl2 shadow-soft max-w-xl mx-auto space-y-5">
         {/* Tampilan Error Asli jika terjadi kegagalan Supabase */}
         {errorMessage && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-xl2 text-xs text-red-800 space-y-1 animate-in fade-in">
@@ -200,7 +200,7 @@ function UploadContent() {
 
         {/* Status Indikator Master Password */}
         {isPrivate && (
-          <div className="p-3 rounded-xl border text-xs flex items-center justify-between bg-moya-soft/60 border-moya-border">
+          <div className="p-3 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-moya-soft/60 border-moya-border">
             <span className="text-moya-text flex items-center gap-1.5">
               {masterPassword ? "🔓 Vault Session Active in RAM" : "🔒 Vault Locked (Password requested on upload)"}
             </span>
@@ -208,7 +208,7 @@ function UploadContent() {
               <button
                 type="button"
                 onClick={() => requestMasterPassword()}
-                className="text-[11px] bg-moya-primary text-white px-2.5 py-1 rounded-lg hover:bg-moya-primarydark font-medium transition-colors"
+                className="text-[11px] bg-moya-primary text-white px-2.5 py-1 rounded-lg hover:bg-moya-primarydark font-medium transition-colors self-start sm:self-auto"
               >
                 Unlock Now
               </button>
@@ -234,11 +234,11 @@ function UploadContent() {
           {selectedFile && (
             <div className="p-3 bg-moya-bg border border-moya-border rounded-xl text-xs space-y-1">
               <div className="flex items-center justify-between">
-                <p className="font-medium text-moya-text flex items-center gap-1.5">
+                <p className="font-medium text-moya-text flex items-center gap-1.5 min-w-0">
                   <span>{selectedFile.type?.includes("image") ? "🖼️" : "📄"}</span>
-                  <span className="truncate max-w-[200px]">{selectedFile.name}</span>
+                  <span className="truncate max-w-[160px] sm:max-w-xs break-words">{selectedFile.name}</span>
                 </p>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-moya-soft text-moya-primarydark">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-moya-soft text-moya-primarydark shrink-0">
                   {selectedFile.type?.toLowerCase().includes("image") ? "IMAGE" : "DOCUMENT"}
                 </span>
               </div>

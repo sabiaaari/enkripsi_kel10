@@ -205,16 +205,16 @@ export default function PrivateNoteDetailPage({
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Navigasi Kembali & Tombol Aksi Bagian Atas */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Link
           href="/private/notes"
-          className="inline-flex items-center gap-2 text-xs font-medium text-moya-muted hover:text-moya-primarydark transition-colors px-3 py-1.5 rounded-lg bg-moya-surface border border-moya-border hover:border-moya-primarydark/30 shadow-xs"
+          className="inline-flex items-center gap-2 text-xs font-medium text-moya-muted hover:text-moya-primarydark transition-colors px-3 py-1.5 rounded-lg bg-moya-surface border border-moya-border hover:border-moya-primarydark/30 shadow-xs self-start"
         >
           <span>←</span> Back to Private Notes
         </Link>
 
         {note && !isLoading && !error && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
             {/* Tombol Salin Ciphertext Biner Base64 */}
             <button
               type="button"
@@ -270,7 +270,7 @@ export default function PrivateNoteDetailPage({
 
       {/* Detail Konten Catatan Privat Penuh */}
       {!isLoading && !error && note && (
-        <article className="bg-moya-surface border border-moya-border rounded-xl2 p-6 sm:p-10 shadow-card space-y-6">
+        <article className="bg-moya-surface border border-moya-border rounded-xl2 p-4 sm:p-7 md:p-10 shadow-card space-y-6">
           {/* Header Catatan */}
           <div className="border-b border-moya-border pb-5 space-y-3">
             <div className="flex items-center gap-2">
@@ -286,13 +286,13 @@ export default function PrivateNoteDetailPage({
               </span>
             </div>
 
-            <h1 className="font-display font-medium text-2xl sm:text-3xl text-moya-text leading-tight">
+            <h1 className="font-display font-medium text-xl sm:text-2xl md:text-3xl text-moya-text leading-tight break-words">
               {note.title}
             </h1>
           </div>
 
           {/* Isi Konten Catatan Lengkap (Plaintext yang Berhasil Didekripsi) */}
-          <div className="text-moya-text text-base sm:text-[17px] leading-relaxed whitespace-pre-wrap font-sans bg-moya-bg/50 p-5 sm:p-7 rounded-xl border border-moya-border/60">
+          <div className="text-moya-text text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans bg-moya-bg/50 p-4 sm:p-7 rounded-xl border border-moya-border/60 break-words overflow-x-auto">
             {note.decryptedContent}
           </div>
 

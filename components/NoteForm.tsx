@@ -188,18 +188,18 @@ export default function NoteForm({ isPrivate = false, onSuccess }: NoteFormProps
         />
       </div>
 
-      <div className="pt-2 flex items-center justify-between gap-3">
+      <div className="pt-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => router.push(isPrivate ? "/private/notes" : "/notes")}
-          className="px-5 py-2.5 border border-moya-border hover:bg-moya-soft text-moya-text text-sm font-medium rounded-xl transition-colors"
+          className="px-5 py-2.5 border border-moya-border hover:bg-moya-soft text-moya-text text-sm font-medium rounded-xl transition-colors text-center"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isProcessing}
-          className="flex-1 sm:flex-initial px-6 py-2.5 bg-moya-primary hover:bg-moya-primarydark text-white font-medium rounded-xl text-sm transition-colors shadow-card focus-ring disabled:opacity-50 flex items-center justify-center gap-2"
+          className="px-6 py-2.5 bg-moya-primary hover:bg-moya-primarydark text-white font-medium rounded-xl text-sm transition-colors shadow-card focus-ring disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isProcessing ? (
             <>

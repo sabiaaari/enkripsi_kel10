@@ -218,12 +218,12 @@ export default function CryptoLabPage() {
   return (
     <div className="space-y-8">
       {/* Crypto Lab Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <PageHeader
           title="Cryptography Lab"
         />
 
-        <div>
+        <div className="self-start md:self-auto">
           <input
             type="file"
             ref={fileInputRef}
@@ -245,13 +245,13 @@ export default function CryptoLabPage() {
 
       {/* File Status Info */}
       {selectedFile && (
-        <div className="p-3.5 bg-moya-surface border border-moya-border rounded-xl flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
+        <div className="p-3.5 bg-moya-surface border border-moya-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
             <span>🖼️</span>
-            <span className="font-medium text-moya-text">{selectedFile.name}</span>
-            <span className="text-moya-muted">({formatFileSize(selectedFile.size)})</span>
+            <span className="font-medium text-moya-text truncate break-words">{selectedFile.name}</span>
+            <span className="text-moya-muted shrink-0">({formatFileSize(selectedFile.size)})</span>
           </div>
-          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-[11px]">
+          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-[11px] self-start sm:self-auto">
             Loaded in Memory
           </span>
         </div>

@@ -12,7 +12,7 @@ export default function FileCard({ file }: { file: FileItem }) {
         {typeIcon[file.type]}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-moya-text truncate">
+        <p className="text-sm text-moya-text truncate break-words" title={file.file_name || file.name}>
           {file.file_name || file.name || "Untitled File"}
         </p>
         <p className="text-xs text-moya-muted mt-0.5">

@@ -248,11 +248,11 @@ export default function DocumentsPage() {
           <p className="text-sm text-moya-muted">No public files stored yet.</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {files.map((file) => (
             <div
               key={file.id}
-              className="rounded-xl2 border border-moya-border bg-moya-surface p-4 flex items-center justify-between gap-3 hover:shadow-card transition-shadow"
+              className="rounded-xl2 border border-moya-border bg-moya-surface p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-card transition-shadow"
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 {/* Ikon Berkas Dinamis Berdasarkan Format / Tipe Berkas */}
@@ -261,19 +261,19 @@ export default function DocumentsPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p
-                    className="text-sm font-medium text-moya-text truncate"
+                    className="text-sm font-medium text-moya-text truncate break-words"
                     title={file.file_name || file.name}
                   >
                     {file.file_name || file.name || "Untitled File"}
                   </p>
-                  <p className="text-xs text-moya-muted mt-0.5">
+                  <p className="text-xs text-moya-muted mt-0.5 truncate">
                     {file.size} · {file.updatedAt}
                   </p>
                 </div>
               </div>
 
               {/* Aksi Berkas: Download & Delete */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                 {/* Tombol Unduh Berkas Publik */}
                 <button
                   type="button"

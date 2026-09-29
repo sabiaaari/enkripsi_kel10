@@ -207,7 +207,7 @@ export default function PrivateNotesPage() {
       )}
 
       {/* Filter / Search Bar (Sesuai Halaman Public Notes) */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative w-full sm:w-72">
           <input
             type="text"
@@ -253,11 +253,11 @@ export default function PrivateNotesPage() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {filteredNotes.map((note) => (
             <div
               key={note.id}
-              className="bg-moya-surface border border-moya-border p-5 rounded-xl2 shadow-card flex flex-col justify-between hover:border-moya-primarydark/40 hover:shadow-md transition-all group"
+              className="bg-moya-surface border border-moya-border p-4 sm:p-5 rounded-xl2 shadow-card flex flex-col justify-between hover:border-moya-primarydark/40 hover:shadow-md transition-all group"
             >
               {/* Link ke Halaman Detail Catatan Dinamis (/private/notes/[id]) */}
               <Link

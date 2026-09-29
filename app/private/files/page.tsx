@@ -408,7 +408,7 @@ export default function PrivateFilesPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {files.map((file) => {
               const isImage = file.mime_type?.startsWith("image/");
               const formattedSize = file.file_size
@@ -439,18 +439,18 @@ export default function PrivateFilesPage() {
 
                     <div>
                       <h4
-                        className="font-medium text-sm text-moya-text truncate"
+                        className="font-medium text-sm text-moya-text truncate break-words"
                         title={file.file_name || file.original_filename}
                       >
                         {file.file_name || file.original_filename}
                       </h4>
-                      <p className="text-[11px] text-moya-muted mt-0.5">
+                      <p className="text-[11px] text-moya-muted mt-0.5 truncate">
                         {formattedSize} • {file.mime_type?.split("/")[1]?.toUpperCase() || "FILE"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-moya-border flex items-center justify-between text-xs">
+                  <div className="pt-2 border-t border-moya-border flex flex-wrap items-center justify-between gap-2 text-xs">
                     {/* Tombol Unduh & Dekripsi Manual */}
                     <button
                       type="button"

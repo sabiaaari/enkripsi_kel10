@@ -13,12 +13,12 @@ export default function NoteCard({ note }: { note: Note }) {
       `}
     >
       <div className="flex items-start justify-between gap-3 mb-2">
-        <h3 className="font-display text-lg text-moya-text leading-snug group-hover:text-moya-primarydark transition-colors line-clamp-1">
+        <h3 className="font-display text-base sm:text-lg text-moya-text leading-snug group-hover:text-moya-primarydark transition-colors line-clamp-1 break-words">
           {note.title || "Untitled"}
         </h3>
-        {note.pinned && <span title="Pinned" aria-label="Pinned">📌</span>}
+        {note.pinned && <span title="Pinned" aria-label="Pinned" className="shrink-0">📌</span>}
       </div>
-      <p className="text-sm text-moya-muted leading-relaxed line-clamp-2">
+      <p className="text-xs sm:text-sm text-moya-muted leading-relaxed line-clamp-2 break-words">
         {note.excerpt}
       </p>
       <div className="flex items-center justify-between mt-4">
@@ -27,7 +27,7 @@ export default function NoteCard({ note }: { note: Note }) {
         >
           {note.category}
         </span>
-        <span className="text-xs text-moya-muted">{note.updatedAt}</span>
+        <span className="text-xs text-moya-muted shrink-0">{note.updatedAt}</span>
       </div>
     </Link>
   );

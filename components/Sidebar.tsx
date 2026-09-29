@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import NewButton from "./NewButton";
 import YarnMark from "./YarnMark";
 
@@ -28,12 +28,16 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   // State Pengendali untuk mengontrol visibilitas masing-masing accordion menu
-  const [isNotesOpen, setIsNotesOpen] = useState(pathname.startsWith("/notes"));
   const [isPrivateOpen, setIsPrivateOpen] = useState(pathname.startsWith("/private"));
   const [isSettingsOpen, setIsSettingsOpen] = useState(pathname.startsWith("/settings"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Daftar item navigasi: Menu tunggal untuk Dashboard dan Public Files, serta Accordion untuk Notes, Private, Settings
+  // Tutup menu laci otomatis saat rute berubah
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Daftar item navigasi: Menu tunggal untuk Dashboard, Notes, dan Public Files, serta Accordion untuk Private dan Settings
   const navItems: NavItem[] = [
     {
       kind: "link",
@@ -43,16 +47,11 @@ export default function Sidebar() {
       isActive: pathname === "/dashboard",
     },
     {
-      kind: "accordion",
+      kind: "link",
       label: "Notes",
       icon: "📝",
-      isOpen: isNotesOpen,
-      onToggle: () => setIsNotesOpen((prev) => !prev),
+      href: "/notes",
       isActive: pathname.startsWith("/notes"),
-      children: [
-        { label: "All Notes", href: "/notes" },
-        { label: "Categories", href: "/notes/categories" },
-      ],
     },
     {
       kind: "link",
@@ -95,30 +94,63 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Top Bar */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-moya-border bg-moya-surface sticky top-0 z-30">
+      {/* Mobile Top Navbar sederhana dengan Hamburger Menu */}
+      <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-moya-border bg-moya-surface/95 backdrop-blur-sm sticky top-0 z-30 w-full shrink-0 shadow-xs">
         <Link href="/dashboard" className="flex items-center gap-2">
           <YarnMark size={22} />
-          <span className="font-display text-lg text-moya-text">MOYA</span>
+          <span className="font-display text-lg text-moya-text tracking-wide">MOYA</span>
         </Link>
         <button
+          type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          className="text-moya-text px-2 py-1 rounded-lg focus-ring"
-          aria-label="Toggle menu"
+          className="p-2 rounded-xl text-moya-text hover:bg-moya-soft focus-ring transition-colors cursor-pointer"
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
         >
-          {mobileOpen ? "✕" : "☰"}
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {mobileOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
         </button>
-      </div>
+      </header>
 
+      {/* Backdrop overlay saat menu laci mobile terbuka */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar: Menu slide-over (laci) di mobile & posisi permanen sticky di desktop */}
       <aside
         className={`
-          w-64 shrink-0 bg-moya-surface border-r border-moya-border
-          flex-col justify-between
-          md:flex md:sticky md:top-0 md:h-screen
-          ${mobileOpen ? "flex fixed inset-0 z-20 pt-16" : "hidden"}
+          fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-moya-surface border-r border-moya-border
+          flex flex-col justify-between shadow-2xl transition-transform duration-300 ease-in-out
+          md:static md:w-64 md:inset-auto md:z-auto md:shadow-none md:flex md:sticky md:top-0 md:h-screen md:shrink-0
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
-        <div className="px-5 pt-7 pb-3 overflow-y-auto">
+        <div className="px-5 pt-5 md:pt-7 pb-3 overflow-y-auto">
+          {/* Header Laci Mobile dengan Tombol Tutup */}
+          <div className="flex md:hidden items-center justify-between pb-4 mb-4 border-b border-moya-border">
+            <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="flex items-center gap-2">
+              <YarnMark size={24} />
+              <span className="font-display text-xl text-moya-text">MOYA</span>
+            </Link>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="p-1.5 rounded-lg text-moya-muted hover:text-moya-text hover:bg-moya-soft focus-ring cursor-pointer"
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
+          </div>
+
           <Link href="/dashboard" className="hidden md:flex items-center gap-2 px-1 mb-1">
             <YarnMark size={26} />
             <span className="font-display text-xl text-moya-text">MOYA</span>

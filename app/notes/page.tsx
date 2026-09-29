@@ -117,15 +117,15 @@ export default function NotesPage() {
   );
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <PageHeader
           title="Public Notes"
         />
 
         <Link
           href="/notes/new?private=false"
-          className="px-4 py-2 bg-moya-primary hover:bg-moya-primarydark text-white rounded-xl text-xs font-semibold transition-colors shadow-card flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+          className="px-4 py-2 bg-moya-primary hover:bg-moya-primarydark text-white rounded-xl text-xs font-semibold transition-colors shadow-card flex items-center gap-1.5 self-start md:self-auto cursor-pointer"
         >
           <span>+</span>
           <span>New Note</span>
@@ -134,11 +134,11 @@ export default function NotesPage() {
 
       {/* Pesan Error Supabase jika ada */}
       {dbError && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 flex items-center justify-between gap-3">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p>⚠️ {dbError}</p>
           <button
             onClick={() => fetchPublicNotes()}
-            className="px-3 py-1 bg-red-100 hover:bg-red-200 rounded-lg font-medium cursor-pointer"
+            className="px-3 py-1 bg-red-100 hover:bg-red-200 rounded-lg font-medium cursor-pointer shrink-0"
           >
             Try Again
           </button>
@@ -146,7 +146,7 @@ export default function NotesPage() {
       )}
 
       {/* Filter / Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative w-full sm:w-72">
           <input
             type="text"
@@ -185,11 +185,11 @@ export default function NotesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {filteredNotes.map((note) => (
             <div
               key={note.id}
-              className={`rounded-xl2 p-5 shadow-card flex flex-col justify-between hover:shadow-md transition-all group ${
+              className={`rounded-xl2 p-4 sm:p-5 shadow-card flex flex-col justify-between hover:shadow-md transition-all group ${
                 note.is_pinned
                   ? "bg-gradient-to-b from-amber-50/50 via-amber-50/20 to-moya-surface border-2 border-amber-300 shadow-amber-100/50 ring-1 ring-amber-200/50"
                   : "bg-moya-surface border border-moya-border hover:border-moya-primarydark/40"

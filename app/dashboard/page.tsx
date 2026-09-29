@@ -149,20 +149,20 @@ export default function DashboardPage() {
   return (
     <div>
       {/* Header Dashboard & User Status */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <p className="text-moya-muted text-sm mb-1">
+          <p className="text-moya-muted text-xs sm:text-sm mb-1">
             {user ? `Hello, ${user.email?.split("@")[0]} 👋` : "Welcome to MOYA"}
           </p>
-          <h1 className="font-display text-3xl text-moya-text">
+          <h1 className="font-display text-2xl sm:text-3xl text-moya-text break-words">
             What are you keeping today?
           </h1>
         </div>
 
-        <div>
+        <div className="self-start md:self-auto">
           {user ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs bg-moya-soft text-moya-primarydark px-3 py-1.5 rounded-xl border border-moya-border">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs bg-moya-soft text-moya-primarydark px-3 py-1.5 rounded-xl border border-moya-border truncate max-w-[220px] sm:max-w-xs" title={user.email}>
                 {user.email}
               </span>
               <button
@@ -192,7 +192,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Input Pencarian */}
-      <div className="relative mb-9">
+      <div className="relative mb-7 md:mb-9">
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-moya-muted">
           🔍
         </span>
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                   View all
                 </Link>
               </div>
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {pinnedNotes.map((n) => (
                   <NoteCard key={n.id} note={n} />
                 ))}
@@ -257,7 +257,7 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {recentNotes.map((n) => (
                   <NoteCard key={n.id} note={n} />
                 ))}
@@ -280,7 +280,7 @@ export default function DashboardPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {files.map((f) => (
                   <FileCard key={f.id} file={f} />
                 ))}
