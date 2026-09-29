@@ -226,22 +226,6 @@ function NewNoteContent() {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-moya-text mb-1.5">
-                  Category
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-moya-bg border border-moya-border rounded-xl text-sm text-moya-text focus-ring"
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      📁 {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
           )}
 
