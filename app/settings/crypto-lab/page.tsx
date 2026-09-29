@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/utils/supabase";
 import { useMasterPassword } from "@/context/MasterPasswordContext";
-import { encryptDiary } from "@/utils/crypto";
+import { encryptDiary, encryptAvalancheTest } from "@/utils/crypto";
 import { encryptPixelsECB, encryptPixelsSecure } from "@/utils/imageCipher";
 
 function formatFileSize(bytes?: number | null): string {
@@ -29,6 +29,21 @@ export default function CryptoLabPage() {
   const [isProcessingCanvas, setIsProcessingCanvas] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [demoResults, setDemoResults] = useState<DemoResult | null>(null);
+
+  // Avalanche Effect Test
+  const [avalancheFile, setAvalancheFile] = useState<File | null>(null);
+  const [avalanchePasswordA, setAvalanchePasswordA] = useState("");
+  const [avalanchePasswordB, setAvalanchePasswordB] = useState("");
+  const [isAvalancheTesting, setIsAvalancheTesting] = useState(false);
+
+  const [avalancheResult, setAvalancheResult] = useState<{
+    fileSize: number;
+    hammingDistance: number;
+    totalBits: number;
+    percentage: number;
+  } | null>(null);
+
+  const avalancheFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const origCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -215,6 +230,51 @@ export default function CryptoLabPage() {
     }
   };
 
+  // Pengujian Avalanche Effect
+  const handleAvalancheTest = async () => {
+    if (!avalancheFile) {
+      alert("Please select a file first.");
+      return;
+    }
+
+    if (!avalanchePasswordA || !avalanchePasswordB) {
+      alert("Please enter both passwords.");
+      return;
+    }
+
+    if (avalanchePasswordA === avalanchePasswordB) {
+      alert("Password A and Password B must be different.");
+      return;
+    }
+
+    setIsAvalancheTesting(true);
+    setAvalancheResult(null);
+
+    try {
+      const fileBuffer = await avalancheFile.arrayBuffer();
+
+      const result = await encryptAvalancheTest(
+        fileBuffer,
+        avalanchePasswordA,
+        avalanchePasswordB
+      );
+
+      setAvalancheResult({
+        fileSize: avalancheFile.size,
+        hammingDistance: result.hammingDistance,
+        totalBits: result.totalBits,
+        percentage: result.percentage,
+      });
+    } catch (error: any) {
+      console.error("Avalanche Effect Test Error:", error);
+      alert(
+        "Failed to run Avalanche Effect Test: " +
+          (error?.message || "Unknown error.")
+      );
+    } finally {
+      setIsAvalancheTesting(false);
+    }
+  };
   return (
     <div className="space-y-8">
       {/* Crypto Lab Header */}
@@ -356,7 +416,6 @@ export default function CryptoLabPage() {
               ECB mode is never used in MOYA&apos;s vault system because it leaks data patterns. MOYA implements authenticated <strong>AES-256-GCM</strong> (Authenticated Encryption with Associated Data / AEAD) with a 12-byte Nonce and PBKDF2 key derivation (600,000 iterations) to guarantee both confidentiality and cryptographic integrity.
             </p>
           </div>
-
           {/* Save to Vault Button */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-moya-border">
             <p className="text-xs text-moya-muted">
@@ -383,6 +442,171 @@ export default function CryptoLabPage() {
           </div>
         </div>
       )}
+            {/* ==========================================
+          AVALANCHE EFFECT TEST
+          Fitur tambahan untuk pengujian UTS
+          ========================================== */}
+      <section className="space-y-5">
+        <div>
+          <h2 className="font-display text-xl font-semibold text-moya-text">
+            🔐 Avalanche Effect Test
+          </h2>
+          <p className="text-sm text-moya-muted mt-1 max-w-2xl">
+            Pengujian untuk melihat perubahan ciphertext ketika password
+            diubah sedikit. Hasil yang mendekati 50% menunjukkan perubahan
+            bit yang besar pada ciphertext.
+          </p>
+        </div>
+
+        <div className="rounded-xl2 border border-moya-border bg-moya-surface p-5 shadow-soft space-y-5">
+          {/* File Test */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-moya-text">
+              Test File
+            </label>
+
+            <input
+              type="file"
+              ref={avalancheFileInputRef}
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setAvalancheFile(file);
+                setAvalancheResult(null);
+              }}
+              className="hidden"
+              id="avalanche-file-input"
+            />
+
+            <button
+              type="button"
+              onClick={() => avalancheFileInputRef.current?.click()}
+              className="px-4 py-2.5 bg-moya-primary hover:bg-moya-primarydark text-white rounded-xl text-sm font-medium transition-colors"
+            >
+              📄 {avalancheFile ? "Change Test File" : "Choose Test File"}
+            </button>
+
+            {avalancheFile && (
+              <div className="text-xs text-moya-muted">
+                Selected:{" "}
+                <span className="font-medium text-moya-text">
+                  {avalancheFile.name}
+                </span>{" "}
+                ({formatFileSize(avalancheFile.size)})
+              </div>
+            )}
+          </div>
+
+          {/* Password A & B */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label
+                htmlFor="avalanche-password-a"
+                className="text-sm font-semibold text-moya-text"
+              >
+                Password A
+              </label>
+
+              <input
+                id="avalanche-password-a"
+                type="password"
+                value={avalanchePasswordA}
+                onChange={(e) => setAvalanchePasswordA(e.target.value)}
+                placeholder="Contoh: Rahasia1"
+                className="w-full px-4 py-2.5 rounded-xl border border-moya-border bg-white text-sm text-moya-text outline-none focus:ring-2 focus:ring-moya-primary/20"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="avalanche-password-b"
+                className="text-sm font-semibold text-moya-text"
+              >
+                Password B
+              </label>
+
+              <input
+                id="avalanche-password-b"
+                type="password"
+                value={avalanchePasswordB}
+                onChange={(e) => setAvalanchePasswordB(e.target.value)}
+                placeholder="Contoh: Rahasia2"
+                className="w-full px-4 py-2.5 rounded-xl border border-moya-border bg-white text-sm text-moya-text outline-none focus:ring-2 focus:ring-moya-primary/20"
+              />
+            </div>
+          </div>
+
+          {/* Run Test */}
+          <button
+            type="button"
+            onClick={handleAvalancheTest}
+            disabled={isAvalancheTesting}
+            className="px-5 py-2.5 bg-moya-primary hover:bg-moya-primarydark disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-colors"
+          >
+            {isAvalancheTesting
+              ? "Testing..."
+              : "Run Avalanche Effect Test"}
+          </button>
+
+          {/* Result */}
+          {avalancheResult && (
+            <div className="pt-4 border-t border-moya-border space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-moya-text">
+                  Test Result
+                </h3>
+                <p className="text-xs text-moya-muted mt-1">
+                  Perbandingan ciphertext dari dua password yang berbeda.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-xl border border-moya-border p-4">
+                  <p className="text-xs text-moya-muted">File Size</p>
+                  <p className="mt-1 text-sm font-semibold text-moya-text">
+                    {formatFileSize(avalancheResult.fileSize)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-moya-border p-4">
+                  <p className="text-xs text-moya-muted">
+                    Hamming Distance
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-moya-text">
+                    {avalancheResult.hammingDistance.toLocaleString()}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-moya-border p-4">
+                  <p className="text-xs text-moya-muted">Total Bits</p>
+                  <p className="mt-1 text-sm font-semibold text-moya-text">
+                    {avalancheResult.totalBits.toLocaleString()}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-moya-border p-4">
+                  <p className="text-xs text-moya-muted">
+                    Bit Difference
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-moya-text">
+                    {avalancheResult.percentage.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-moya-surface border border-moya-border p-4">
+                <p className="text-xs text-moya-muted leading-relaxed">
+                  <strong className="text-moya-text">
+                    Interpretasi:
+                  </strong>{" "}
+                  semakin mendekati 50%, semakin besar perubahan bit pada
+                  ciphertext akibat perubahan password. Hal ini menunjukkan
+                  efek avalanche pada algoritma enkripsi.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

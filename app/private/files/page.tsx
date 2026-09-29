@@ -137,6 +137,8 @@ export default function PrivateFilesPage() {
       let lastDecryptError: any = null;
 
       try {
+        console.time("Decryption");
+
         decryptedBuffer = (await decryptDiary(
           cipherBuffer,
           file.salt,
@@ -144,6 +146,8 @@ export default function PrivateFilesPage() {
           pwd,
           file.auth_tag || ""
         )) as ArrayBuffer;
+
+        console.timeEnd("Decryption");
       } catch (firstErr) {
         lastDecryptError = firstErr;
         // Fallback jika file di storage tertimpa oleh record lain dengan storage_path yang sama
@@ -222,10 +226,13 @@ export default function PrivateFilesPage() {
       // 2. ENKRIPSI SISI KLIEN: Konversi berkas ke ArrayBuffer & Enkripsi AES-256-GCM
       const file = selectedFile;
       const fileBuffer = await file.arrayBuffer();
+      
+      console.time("Encryption");
       const { ciphertext, salt, nonce, authTag } = await encryptDiary(
         fileBuffer,
         masterPassword
       );
+      console.timeEnd("Encryption");
 
       // Siapkan encryptedData untuk Storage
       const encryptedData = new Blob([ciphertext as any], {
@@ -234,7 +241,7 @@ export default function PrivateFilesPage() {
 
       // 3. UNGGAH KE SUPABASE STORAGE (MEMATUHI ATURAN RLS DENGAN FORMAT DIREKTORI user.id):
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = `${user.id}/${Date.now()}_${safeName}`;
+      const filePath = `${user.id}/${Date.now()}_${safeName}.enc`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("diary-files")

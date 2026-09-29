@@ -198,3 +198,107 @@ export async function decryptDiary(cipherInput, saltInput, ivInput, masterPasswo
 
   throw new Error("Gagal mendekripsi berkas: Master Password salah atau integritas data/auth_tag telah rusak!");
 }
+
+export async function encryptAvalancheTest(
+  plainInput,
+  passwordA,
+  passwordB
+) {
+  if (!passwordA || !passwordB) {
+    throw new Error("Password A dan Password B wajib diisi.");
+  }
+
+  if (passwordA === passwordB) {
+    throw new Error("Password A dan Password B harus berbeda.");
+  }
+
+  let data;
+
+  if (plainInput instanceof ArrayBuffer) {
+    data = new Uint8Array(plainInput);
+  } else if (ArrayBuffer.isView(plainInput)) {
+    data = new Uint8Array(
+      plainInput.buffer,
+      plainInput.byteOffset,
+      plainInput.byteLength
+    );
+  } else {
+    throw new Error("Input harus berupa ArrayBuffer atau Uint8Array.");
+  }
+
+  // KHUSUS PENGUJIAN AVALANCHE EFFECT
+  // Salt dan IV dibuat sama untuk kedua enkripsi.
+  const salt = cryptoInstance.getRandomValues(
+    new Uint8Array(16)
+  );
+
+  const iv = cryptoInstance.getRandomValues(
+    new Uint8Array(12)
+  );
+
+  const keyA = await deriveKeyFromPassword(
+    passwordA,
+    salt,
+    600000
+  );
+
+  const keyB = await deriveKeyFromPassword(
+    passwordB,
+    salt,
+    600000
+  );
+
+  const encryptedA = await cryptoInstance.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv: iv,
+    },
+    keyA,
+    data
+  );
+
+  const encryptedB = await cryptoInstance.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv: iv,
+    },
+    keyB,
+    data
+  );
+
+  const cipherA = new Uint8Array(encryptedA);
+  const cipherB = new Uint8Array(encryptedB);
+
+  const minLength = Math.min(
+    cipherA.length,
+    cipherB.length
+  );
+
+  let hammingDistance = 0;
+
+  for (let i = 0; i < minLength; i++) {
+    let xor = cipherA[i] ^ cipherB[i];
+
+    while (xor !== 0) {
+      hammingDistance += xor & 1;
+      xor >>>= 1;
+    }
+  }
+
+  const totalBits = minLength * 8;
+
+  const percentage =
+    totalBits > 0
+      ? (hammingDistance / totalBits) * 100
+      : 0;
+
+  return {
+    ciphertextA: cipherA,
+    ciphertextB: cipherB,
+    salt: bufferToBase64(salt),
+    nonce: bufferToBase64(iv),
+    hammingDistance,
+    totalBits,
+    percentage,
+  };
+}
