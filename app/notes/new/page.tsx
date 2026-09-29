@@ -7,10 +7,10 @@ import { encryptDiary } from "@/utils/crypto";
 import { useMasterPassword } from "@/context/MasterPasswordContext";
 import { supabase } from "@/utils/supabase";
 
-const FOLDERS = [
-  { id: "personal", name: "Personal" },
-  { id: "college", name: "College" },
-  { id: "work", name: "Work" },
+const CATEGORIES = [
+  { id: "Personal", name: "Personal" },
+  { id: "College", name: "College" },
+  { id: "Work", name: "Work" },
 ];
 
 function NewNoteContent() {
@@ -23,7 +23,7 @@ function NewNoteContent() {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [folderId, setFolderId] = useState("personal");
+  const [category, setCategory] = useState("Personal");
   const [isEncrypted, setIsEncrypted] = useState(isPrivateQuery);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -77,10 +77,10 @@ function NewNoteContent() {
         : content.trim();
 
       // 4. Siapkan data sesuai status toggle isEncrypted
-      let payload;
+      let payload: any;
 
       if (isEncrypted) {
-        // Enkripsi client-side AES-256-GCM
+        // Enkripsi client-side AES-256-GCM (Catatan Privat: TIDAK mengirim variabel category)
         const encrypted = await encryptDiary(plainText, pwd!);
         payload = {
           user_id: user.id,
@@ -92,11 +92,12 @@ function NewNoteContent() {
           auth_tag: encrypted.authTag,
         };
       } else {
-        // Plaintext terbuka tanpa enkripsi
+        // Plaintext terbuka tanpa enkripsi (Catatan Publik: menyertakan nilai category yang dipilih)
         payload = {
           user_id: user.id,
           content: plainText, // Variabel content berisi teks asli (format [Judul]\n\nKonten)
           is_encrypted: false,
+          category: category,
           algorithm: null,
           salt: null,
           nonce: null,
@@ -105,11 +106,27 @@ function NewNoteContent() {
       }
 
       // 5. Eksekusi INSERT ke Supabase
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("diary_notes")
         .insert(payload)
         .select()
         .single();
+
+      // Penanganan jika kolom 'category' belum terdaftar di skema Supabase
+      if (
+        error &&
+        (error.code === "PGRST204" || error.code === "42703" || error.message?.includes("category"))
+      ) {
+        console.warn("Kolom category tidak ditemukan di skema Supabase, mencoba insert tanpa key category:", error.message);
+        const { category: _omitted, ...safePayload } = payload;
+        const retry = await supabase
+          .from("diary_notes")
+          .insert(safePayload)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.error("Gagal menyimpan diary:", error);
@@ -123,7 +140,8 @@ function NewNoteContent() {
         const newLocalItem = {
           id: data?.id || "n_" + Date.now(),
           title: title.trim() || (isEncrypted ? "Secret Note" : "Public Note"),
-          folderId,
+          category: isEncrypted ? null : category,
+          folderId: isEncrypted ? null : category.toLowerCase(),
           content: payload.content,
           salt: payload.salt,
           iv: payload.nonce,
@@ -177,8 +195,9 @@ function NewNoteContent() {
         )}
 
         <form onSubmit={handleSaveNote} className="space-y-4">
-          <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-2">
+          {isEncrypted ? (
+            // Form Catatan Privat: Dropdown kategori dihapus sepenuhnya, input judul memanjang penuh
+            <div>
               <label className="block text-xs font-medium text-moya-text mb-1.5">
                 Note Title
               </label>
@@ -191,23 +210,40 @@ function NewNoteContent() {
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-moya-text mb-1.5">
-                Category
-              </label>
-              <select
-                value={folderId}
-                onChange={(e) => setFolderId(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-moya-bg border border-moya-border rounded-xl text-sm text-moya-text focus-ring"
-              >
-                {FOLDERS.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    📁 {f.name}
-                  </option>
-                ))}
-              </select>
+          ) : (
+            // Form Catatan Publik: Input judul dan dropdown kategori dengan state binding onChange yang benar
+            <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-moya-text mb-1.5">
+                  Note Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., College Project, Personal Thoughts, Ideas..."
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-moya-bg border border-moya-border rounded-xl text-sm text-moya-text placeholder:text-moya-muted focus-ring"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-moya-text mb-1.5">
+                  Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-moya-bg border border-moya-border rounded-xl text-sm text-moya-text focus-ring"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      📁 {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-moya-text mb-1.5">
@@ -222,13 +258,6 @@ function NewNoteContent() {
               required
             />
           </div>
-
-          {isEncrypted && masterPassword && (
-            <div className="pt-2 border-t border-moya-border">
-              <div className="text-xs text-moya-muted flex items-center gap-2">
-              </div>
-            </div>
-          )}
 
           <div className="pt-2 flex items-center justify-between gap-3">
             <button
