@@ -37,7 +37,6 @@ export default function Sidebar() {
       basePath: "/notes",
       children: [
         { label: "All Notes", href: "/notes" },
-        { label: "Pinned", href: "/notes/pinned" },
         { label: "Categories", href: "/notes/categories" },
       ],
     },

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/utils/supabase";
-import { encryptFileBuffer, decryptFileBuffer } from "@/utils/crypto";
+import { encryptDiary, decryptDiary } from "@/utils/crypto";
 import { useMasterPassword } from "@/context/MasterPasswordContext";
 
 export type PrivateFileItem = {
@@ -23,7 +23,7 @@ export type PrivateFileItem = {
 };
 
 export default function PrivateFilesPage() {
-  const { masterPassword, openModal } = useMasterPassword();
+  const { masterPassword, openModal, requestMasterPassword } = useMasterPassword();
   const [files, setFiles] = useState<PrivateFileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -39,18 +39,21 @@ export default function PrivateFilesPage() {
     setDbError(null);
 
     try {
-      // Ambil metadata dari tabel encrypted_files
+      // Ambil metadata dari tabel encrypted_files (filter ketat hanya berkas terenkripsi dengan salt)
       const { data, error } = await supabase
         .from("encrypted_files")
         .select("*")
         .eq("is_encrypted", true)
+        .not("salt", "is", null)
         .order("created_at", { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      const rows: PrivateFileItem[] = (data || []).map((row: any) => ({
+      const rows: PrivateFileItem[] = (data || [])
+        .filter((row: any) => row.is_encrypted !== false && Boolean(row.salt || row.file_salt))
+        .map((row: any) => ({
         id: String(row.id),
         user_id: row.user_id,
         original_filename: row.original_filename || row.file_name || row.name || "Encrypted File",
@@ -60,9 +63,9 @@ export default function PrivateFilesPage() {
         storage_path: row.storage_path || "",
         is_encrypted: row.is_encrypted ?? true,
         algorithm: row.algorithm || "AES-256-GCM",
-        salt: row.salt || "",
-        nonce: row.nonce || row.iv || "",
-        auth_tag: row.auth_tag || "",
+        salt: row.salt || row.file_salt || "",
+        nonce: row.nonce || row.iv || row.file_iv || row.file_nonce || "",
+        auth_tag: row.auth_tag || row.authTag || "",
         created_at: row.created_at,
       }));
 
@@ -82,10 +85,14 @@ export default function PrivateFilesPage() {
 
   // --- FUNGSI UNDUH & DEKRIPSI MANUAL (handleDownload) ---
   const handleDownload = async (file: PrivateFileItem) => {
-    // 1. Cek apakah masterPassword tersedia dari Context
-    if (!masterPassword) {
+    // 1. Cek apakah masterPassword tersedia dari Context, jika belum ada, minta dan tunggu input pengguna
+    let pwd = masterPassword;
+    if (!pwd) {
+      pwd = await requestMasterPassword();
+    }
+
+    if (!pwd) {
       alert("Master Password is required to decrypt this file. Please unlock your vault first.");
-      openModal();
       return;
     }
 
@@ -106,15 +113,62 @@ export default function PrivateFilesPage() {
         throw downloadError || new Error("Failed to download file from storage");
       }
 
+      // Validasi metadata kriptografi isi berkas
+      if (!file.salt || !file.nonce) {
+        throw new Error(
+          `Metadata kriptografi berkas tidak lengkap (salt: "${file.salt}", nonce: "${file.nonce}") untuk berkas "${file.original_filename}".`
+        );
+      }
+
+      console.log("[PrivateFiles] Downloading & Decrypting file:", {
+        fileName: file.original_filename,
+        storagePath: file.storage_path,
+        fileBlobSize: fileBlob.size,
+        hasSalt: Boolean(file.salt),
+        saltLength: file.salt.length,
+        hasNonce: Boolean(file.nonce),
+        nonceLength: file.nonce.length,
+        hasAuthTag: Boolean(file.auth_tag),
+      });
+
       // 3. Dekripsi buffer/blob yang ditarik tersebut menggunakan fungsi AES-256-GCM
       const cipherBuffer = await fileBlob.arrayBuffer();
-      const decryptedBuffer = await decryptFileBuffer(
-        cipherBuffer,
-        file.salt,
-        file.nonce,
-        file.auth_tag || "",
-        masterPassword
-      );
+      let decryptedBuffer: ArrayBuffer | null = null;
+      let lastDecryptError: any = null;
+
+      try {
+        decryptedBuffer = (await decryptDiary(
+          cipherBuffer,
+          file.salt,
+          file.nonce,
+          pwd,
+          file.auth_tag || ""
+        )) as ArrayBuffer;
+      } catch (firstErr) {
+        lastDecryptError = firstErr;
+        // Fallback jika file di storage tertimpa oleh record lain dengan storage_path yang sama
+        const siblingFiles = files.filter(
+          (f) => f.storage_path === file.storage_path && f.id !== file.id && f.salt && f.nonce
+        );
+
+        for (const sibling of siblingFiles) {
+          try {
+            decryptedBuffer = (await decryptDiary(
+              cipherBuffer,
+              sibling.salt,
+              sibling.nonce,
+              pwd,
+              sibling.auth_tag || ""
+            )) as ArrayBuffer;
+            console.log("[PrivateFiles] Berhasil didekripsi menggunakan metadata sibling record:", sibling.id);
+            break;
+          } catch {}
+        }
+
+        if (!decryptedBuffer) {
+          throw lastDecryptError;
+        }
+      }
 
       // 4. Ubah hasil dekripsi menjadi Blob
       const decryptedBlob = new Blob([decryptedBuffer], {
@@ -168,7 +222,7 @@ export default function PrivateFilesPage() {
       // 2. ENKRIPSI SISI KLIEN: Konversi berkas ke ArrayBuffer & Enkripsi AES-256-GCM
       const file = selectedFile;
       const fileBuffer = await file.arrayBuffer();
-      const { ciphertext, salt, nonce, authTag } = await encryptFileBuffer(
+      const { ciphertext, salt, nonce, authTag } = await encryptDiary(
         fileBuffer,
         masterPassword
       );
@@ -179,7 +233,8 @@ export default function PrivateFilesPage() {
       });
 
       // 3. UNGGAH KE SUPABASE STORAGE (MEMATUHI ATURAN RLS DENGAN FORMAT DIREKTORI user.id):
-      const filePath = `${user.id}/${file.name}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${user.id}/${Date.now()}_${safeName}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("diary-files")

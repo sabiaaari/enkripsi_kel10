@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/utils/supabase";
-import { decryptDiary, decryptFileBuffer } from "@/utils/crypto";
 import { useMasterPassword } from "@/context/MasterPasswordContext";
 
 type FileRecord = {

@@ -20,9 +20,9 @@ export default function LayoutContent({
   // 1. Jika rute saat ini adalah /login, /register, atau /, render {children} saja secara penuh (full screen)
   if (isAuthOrLanding) {
     return (
-      <main className="min-h-screen w-full bg-moya-bg">
+      <div className="w-full min-h-screen bg-moya-bg">
         {children}
-      </main>
+      </div>
     );
   }
 

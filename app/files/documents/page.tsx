@@ -23,26 +23,29 @@ export default function DocumentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
       setErrorMessage(null);
       try {
-        // 1. Filter Privasi Supabase: HANYA ambil berkas publik (is_encrypted === false) & non-gambar
+        // Filter Privasi Supabase: HANYA ambil berkas publik (is_encrypted === false & salt IS NULL)
         const { data, error } = await supabase
           .from("encrypted_files")
           .select("*")
           .eq("is_encrypted", false)
+          .is("salt", null)
           .not("mime_type", "ilike", "image/%")
           .order("created_at", { ascending: false });
 
         if (error) {
           throw error;
         } else if (data) {
-          // 2. Filter ekstensi/tipe MIME dokumen dan petakan data asli dari database
+          // Validasi ketat: abaikan jika berkas memiliki indikator enkripsi/kriptografi
           const mapped: DocumentItem[] = data
             .filter((f: any) => {
+              if (f.is_encrypted || f.salt || f.nonce) return false;
               const mime = (f.mime_type || f.type || "").toLowerCase();
               return !mime.startsWith("image/") && mime !== "image";
             })
@@ -110,6 +113,50 @@ export default function DocumentsPage() {
     }
   };
 
+  // Fungsi Hapus Dokumen Publik (Database + Storage)
+  const handleDelete = async (fileOrId: DocumentItem | string) => {
+    const file = typeof fileOrId === "string" ? files.find((f) => f.id === fileOrId) : fileOrId;
+    if (!file) return;
+    const fileId = file.id;
+    const fileName = file.file_name || file.name || "this document";
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus berkas "${fileName}"?`)) {
+      return;
+    }
+
+    setDeletingId(fileId);
+    try {
+      // 1. Hapus rekaman data berkas dari tabel basis data Supabase
+      const { error: deleteDbError } = await supabase
+        .from("encrypted_files")
+        .delete()
+        .eq("id", fileId);
+
+      if (deleteDbError) {
+        throw new Error(`Gagal menghapus data dari database: ${deleteDbError.message}`);
+      }
+
+      // 2. Hapus berkas mentah (blob) dari dalam bucket storage Supabase jika ada
+      if (file.storage_path) {
+        const { error: storageRemoveError } = await supabase.storage
+          .from("diary-files")
+          .remove([file.storage_path]);
+
+        if (storageRemoveError) {
+          console.warn("Gagal menghapus berkas dari storage bucket:", storageRemoveError.message);
+        }
+      }
+
+      // 3. Pembaruan State (UX): hilangkan berkas langsung dari daftar antarmuka
+      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+    } catch (err: any) {
+      console.error("Gagal menghapus dokumen:", err);
+      alert("Failed to delete document: " + (err.message || err));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div>
       <PageHeader title="Documents" subtitle="PDF and other document files stored in MOYA" />
@@ -153,26 +200,50 @@ export default function DocumentsPage() {
                 </div>
               </div>
 
-              {/* Tombol Unduh Dokumen */}
-              <button
-                type="button"
-                onClick={() => handleDownloadPublic(file)}
-                disabled={downloadingId === file.id}
-                className="text-xs bg-moya-soft hover:bg-moya-primary hover:text-white text-moya-primarydark px-3 py-1.5 rounded-lg border border-moya-border font-medium transition-colors flex items-center gap-1.5 shrink-0 shadow-xs disabled:opacity-50 cursor-pointer"
-                title="Download Document"
-              >
-                {downloadingId === file.id ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-moya-primarydark border-t-transparent rounded-full animate-spin" />
-                    <span>Downloading...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>⬇️</span>
-                    <span>Download</span>
-                  </>
-                )}
-              </button>
+              {/* Aksi Berkas: Download & Delete */}
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Tombol Unduh Dokumen Publik */}
+                <button
+                  type="button"
+                  onClick={() => handleDownloadPublic(file)}
+                  disabled={downloadingId === file.id}
+                  className="text-xs bg-moya-soft hover:bg-moya-primary hover:text-white text-moya-primarydark px-3 py-1.5 rounded-lg border border-moya-border font-medium transition-colors flex items-center gap-1.5 shrink-0 shadow-xs disabled:opacity-50 cursor-pointer"
+                  title="Download Document"
+                >
+                  {downloadingId === file.id ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-moya-primarydark border-t-transparent rounded-full animate-spin" />
+                      <span>Downloading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>⬇️</span>
+                      <span>Download</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Tombol Hapus Dokumen Publik */}
+                <button
+                  type="button"
+                  onClick={() => handleDelete(file)}
+                  disabled={deletingId === file.id}
+                  className="text-xs bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 hover:border-red-600 px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 shrink-0 shadow-xs disabled:opacity-50 cursor-pointer"
+                  title="Delete Document"
+                >
+                  {deletingId === file.id ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🗑️</span>
+                      <span>Delete</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -180,5 +251,3 @@ export default function DocumentsPage() {
     </div>
   );
 }
-
-

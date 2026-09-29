@@ -219,7 +219,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-display text-lg text-moya-text">📌 Pinned Notes</h2>
                 <Link
-                  href="/notes/pinned"
+                  href="/notes"
                   className="text-xs text-moya-primarydark hover:underline"
                 >
                   View all

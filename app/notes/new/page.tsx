@@ -84,8 +84,7 @@ function NewNoteContent() {
         const encrypted = await encryptDiary(plainText, pwd!);
         payload = {
           user_id: user.id,
-          title: title.trim() || "Secret Note",
-          content: encrypted.content, // Variabel content berisi ciphertext Base64
+          content: encrypted.content, // Variabel content berisi ciphertext Base64 (termasuk judul terenkripsi)
           is_encrypted: true,
           algorithm: encrypted.algorithm || "AES-256-GCM",
           salt: encrypted.salt,
@@ -96,8 +95,7 @@ function NewNoteContent() {
         // Plaintext terbuka tanpa enkripsi
         payload = {
           user_id: user.id,
-          title: title.trim() || "Untitled Note", // Properti title dari input Judul Catatan
-          content: plainText, // Variabel content berisi teks asli (plaintext)
+          content: plainText, // Variabel content berisi teks asli (format [Judul]\n\nKonten)
           is_encrypted: false,
           algorithm: null,
           salt: null,

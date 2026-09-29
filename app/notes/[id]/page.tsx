@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/utils/supabase";
+import Toast from "@/components/Toast";
 
 export type NoteDetail = {
   id: string;
@@ -12,7 +13,11 @@ export type NoteDetail = {
   title: string;
   content: string;
   is_encrypted: boolean;
-  is_pinned: boolean;
+  is_pinned?: boolean;
+  salt?: string;
+  nonce?: string;
+  auth_tag?: string;
+  rawContent?: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -31,6 +36,8 @@ export default function NoteDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"success" | "info" | "warning">("success");
 
   // Fungsi Fetch Catatan Berdasarkan ID dari Supabase
   const fetchNoteDetail = useCallback(async () => {
@@ -81,6 +88,10 @@ export default function NoteDetailPage({
         content: displayBody,
         is_encrypted: Boolean(data.is_encrypted),
         is_pinned: Boolean(data.is_pinned ?? data.pinned ?? false),
+        salt: data.salt || "",
+        nonce: data.nonce || data.iv || "",
+        auth_tag: data.auth_tag || data.authTag || "",
+        rawContent: data.content || data.encrypted_content || "",
         created_at: data.created_at,
         updated_at: data.updated_at,
       });
@@ -95,37 +106,6 @@ export default function NoteDetailPage({
   useEffect(() => {
     fetchNoteDetail();
   }, [fetchNoteDetail]);
-
-  // Toggle status sematkan (Pin / Unpin)
-  const handleTogglePin = async () => {
-    if (!note) return;
-    const nextStatus = !note.is_pinned;
-
-    setNote((prev) => (prev ? { ...prev, is_pinned: nextStatus } : null));
-
-    try {
-      const { error: updateError } = await supabase
-        .from("diary_notes")
-        .update({ is_pinned: nextStatus })
-        .eq("id", note.id);
-
-      if (updateError) {
-        if (updateError.message?.includes("is_pinned") || updateError.code === "42703") {
-          const { error: fbErr } = await supabase
-            .from("diary_notes")
-            .update({ pinned: nextStatus })
-            .eq("id", note.id);
-          if (fbErr) throw fbErr;
-        } else {
-          throw updateError;
-        }
-      }
-    } catch (err: any) {
-      console.error("Gagal mengubah status pin:", err);
-      setNote((prev) => (prev ? { ...prev, is_pinned: !nextStatus } : null));
-      alert("Failed to toggle pin: " + (err.message || err));
-    }
-  };
 
   // Hapus Catatan dari Supabase
   const handleDeleteNote = async () => {
@@ -153,6 +133,8 @@ export default function NoteDetailPage({
     if (!note) return;
     navigator.clipboard.writeText(`${note.title}\n\n${note.content}`);
     setIsCopied(true);
+    setToastType("success");
+    setToastMessage("Tersalin");
     setTimeout(() => setIsCopied(false), 2000);
   };
 
@@ -169,20 +151,6 @@ export default function NoteDetailPage({
 
         {note && !isLoading && !error && (
           <div className="flex items-center gap-2">
-            {/* Tombol Pin / Unpin */}
-            <button
-              onClick={handleTogglePin}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
-                note.is_pinned
-                  ? "bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200 shadow-xs font-medium"
-                  : "bg-moya-surface border-moya-border hover:bg-moya-soft text-moya-text"
-              }`}
-              title={note.is_pinned ? "Unpin note" : "Pin note to top"}
-            >
-              <span>📌</span>
-              <span>{note.is_pinned ? "Pinned" : "Pin"}</span>
-            </button>
-
             <button
               onClick={handleCopyNote}
               className="text-xs font-medium px-3 py-1.5 rounded-lg bg-moya-surface border border-moya-border hover:bg-moya-soft text-moya-text transition-colors flex items-center gap-1.5 cursor-pointer"
@@ -232,12 +200,6 @@ export default function NoteDetailPage({
           {/* Header Catatan */}
           <div className="border-b border-moya-border pb-5 space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Badge Pinned */}
-              {note.is_pinned && (
-                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1 shadow-xs animate-in fade-in">
-                  <span>📌</span> Pinned
-                </span>
-              )}
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                 <span>📝</span> Public
               </span>
@@ -264,6 +226,14 @@ export default function NoteDetailPage({
           </div>
         </article>
       )}
+
+      {/* Notifikasi Toast Mengambang */}
+      <Toast
+        message={toastMessage || ""}
+        isVisible={!!toastMessage}
+        onClose={() => setToastMessage(null)}
+        type={toastType}
+      />
     </div>
   );
 }

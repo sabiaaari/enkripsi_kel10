@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/utils/supabase";
 import { decryptDiary } from "@/utils/crypto";
 import { useMasterPassword } from "@/context/MasterPasswordContext";
+import Toast from "@/components/Toast";
 
 export type PrivateNoteDetail = {
   id: string;
@@ -36,6 +37,8 @@ export default function PrivateNoteDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [isCiphertextCopied, setIsCiphertextCopied] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showCryptoDetails, setShowCryptoDetails] = useState(false);
 
   // Fetch data catatan terenkripsi dari Supabase dan jalankan dekripsi AES-256-GCM
@@ -77,16 +80,43 @@ export default function PrivateNoteDetailPage({
       const salt = data.salt || "";
       const nonce = data.nonce || data.iv || "";
 
+      // Logika Kompatibilitas Mundur: Cek jika ada encrypted_title terpisah
+      let resolvedTitle = data.title;
+      if (
+        data.encrypted_title &&
+        (data.title_salt || data.salt) &&
+        (data.title_nonce || data.nonce || data.iv)
+      ) {
+        try {
+          const decTitle = (await decryptDiary(
+            data.encrypted_title,
+            data.title_salt || data.salt,
+            data.title_nonce || data.nonce || data.iv,
+            pwd
+          )) as string;
+          if (decTitle && decTitle.trim().length > 0) {
+            resolvedTitle = decTitle.trim();
+          }
+        } catch (titleDecErr) {
+          console.warn("Lewati dekripsi metadata encrypted_title karena gagal:", titleDecErr);
+        }
+      }
+
+      // Validasi parameter sebelum mengeksekusi dekripsi isi catatan
+      if (!cipher || !salt || !nonce) {
+        throw new Error("Metadata kriptografi catatan tidak lengkap (ciphertext, salt, atau iv kosong).");
+      }
+
       let plainText = "";
       try {
-        plainText = await decryptDiary(cipher, salt, nonce, pwd);
+        plainText = (await decryptDiary(cipher, salt, nonce, pwd)) as string;
       } catch (decErr) {
         console.error("Gagal mendekripsi catatan:", decErr);
         throw new Error("Decryption failed. Incorrect master password or corrupted ciphertext.");
       }
 
       // Format judul dan isi jika teks dikemas dengan format [Judul]\n\nKonten
-      let displayTitle = data.title;
+      let displayTitle = resolvedTitle;
       let displayBody = plainText;
 
       if (!displayTitle && plainText) {
@@ -158,6 +188,20 @@ export default function PrivateNoteDetailPage({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  // Salin ciphertext Base64 tanpa dekripsi ulang dan tanpa password
+  const handleCopyCiphertext = async () => {
+    if (!note) return;
+    try {
+      await navigator.clipboard.writeText(note.encryptedContent);
+      setIsCiphertextCopied(true);
+      setToastMessage("Tersalin");
+      setTimeout(() => setIsCiphertextCopied(false), 2000);
+    } catch (err: any) {
+      console.error("Gagal menyalin ciphertext:", err);
+      alert("Gagal menyalin ciphertext: " + (err.message || err));
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Navigasi Kembali & Tombol Aksi Bagian Atas */}
@@ -171,6 +215,17 @@ export default function PrivateNoteDetailPage({
 
         {note && !isLoading && !error && (
           <div className="flex items-center gap-2">
+            {/* Tombol Salin Ciphertext Biner Base64 */}
+            <button
+              type="button"
+              onClick={handleCopyCiphertext}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg bg-moya-surface border border-moya-border hover:bg-moya-soft text-moya-primarydark transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Salin Ciphertext Base64 (Format: [Versi 0x01][Salt 16B][IV 12B][Ciphertext][Tag 16B])"
+            >
+              <span>{isCiphertextCopied ? "✓" : "🔐"}</span>
+              <span>{isCiphertextCopied ? "Tersalin!" : "Salin Ciphertext"}</span>
+            </button>
+
             <button
               onClick={handleCopyNote}
               className="text-xs font-medium px-3 py-1.5 rounded-lg bg-moya-surface border border-moya-border hover:bg-moya-soft text-moya-text transition-colors flex items-center gap-1.5 cursor-pointer"
@@ -243,6 +298,13 @@ export default function PrivateNoteDetailPage({
 
         </article>
       )}
+
+      {/* Notifikasi Toast Mengambang */}
+      <Toast
+        message={toastMessage || ""}
+        isVisible={!!toastMessage}
+        onClose={() => setToastMessage(null)}
+      />
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/utils/supabase";
+import { bufferToBase64 } from "@/utils/crypto";
+import Toast from "@/components/Toast";
 
 // Fungsi utilitas format ukuran fail dari byte ke KB / MB
 function formatFileSize(bytes?: number | null): string {
@@ -23,6 +25,11 @@ export type PublicImageItem = {
   storage_path?: string;
   publicUrl: string;
   updatedAt: string;
+  is_encrypted?: boolean;
+  salt?: string;
+  nonce?: string;
+  auth_tag?: string;
+  content?: string;
 };
 
 export default function ImagesPage() {
@@ -30,13 +37,16 @@ export default function ImagesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [previewModalImage, setPreviewModalImage] = useState<PublicImageItem | null>(null);
+  const [copyingId, setCopyingId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"success" | "info" | "warning">("success");
 
   // Fungsi fetchPublicImages: mengambil gambar publik dan mendapatkan URL publik Supabase Storage
   const fetchPublicImages = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      // 1. Filter Privasi Supabase & Filter Tipe MIME Gambar
+      // 1. Ambil berkas gambar dari tabel encrypted_files
       let query = supabase
         .from("encrypted_files")
         .select("*")
@@ -75,6 +85,11 @@ export default function ImagesPage() {
             size: formatFileSize(img.file_size || img.size),
             storage_path: img.storage_path,
             publicUrl: urlData?.publicUrl || "",
+            is_encrypted: Boolean(img.is_encrypted),
+            salt: img.salt || "",
+            nonce: img.nonce || img.iv || "",
+            auth_tag: img.auth_tag || img.authTag || "",
+            content: img.content || "",
             updatedAt: img.created_at
               ? new Date(img.created_at).toLocaleDateString("en-US")
               : "Today",
@@ -95,6 +110,47 @@ export default function ImagesPage() {
   useEffect(() => {
     fetchPublicImages();
   }, [fetchPublicImages]);
+
+  // Salin ciphertext Base64 biner mentah langsung dari Supabase tanpa dekripsi dan tanpa password
+  const handleCopyCiphertext = async (image: PublicImageItem) => {
+    if (!image.is_encrypted || !image.salt || !image.nonce) {
+      setToastType("info");
+      setToastMessage("Berkas ini tidak terenkripsi (tidak memiliki ciphertext)");
+      return;
+    }
+
+    setCopyingId(image.id);
+    try {
+      let b64Payload: string;
+
+      if (image.content) {
+        b64Payload = image.content;
+      } else if (image.storage_path) {
+        // Download raw encrypted blob directly from storage without decryption
+        const { data: fileBlob, error: downloadError } = await supabase.storage
+          .from("diary-files")
+          .download(image.storage_path);
+
+        if (downloadError || !fileBlob) {
+          throw downloadError || new Error("Gagal mengunduh berkas terenkripsi dari storage.");
+        }
+
+        const cipherBuffer = await fileBlob.arrayBuffer();
+        b64Payload = bufferToBase64(cipherBuffer);
+      } else {
+        throw new Error("Data ciphertext tidak ditemukan pada berkas ini.");
+      }
+
+      await navigator.clipboard.writeText(b64Payload);
+      setToastType("success");
+      setToastMessage("Tersalin");
+    } catch (err: any) {
+      console.error("Gagal menyalin ciphertext gambar:", err);
+      alert("Gagal merangkai ciphertext: " + (err.message || err));
+    } finally {
+      setCopyingId(null);
+    }
+  };
 
   return (
     <div>
@@ -193,19 +249,40 @@ export default function ImagesPage() {
                   </p>
                 </div>
 
-                <div className="mt-2.5 pt-2 border-t border-moya-border/60 flex items-center justify-between text-xs">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                    Public
-                  </span>
-                  <a
-                    href={image.publicUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-moya-primarydark hover:underline font-medium text-xs flex items-center gap-1"
-                    onClick={(e) => e.stopPropagation()}
+                <div className="mt-2.5 pt-2 border-t border-moya-border/60 flex items-center justify-between text-xs gap-1.5 flex-wrap">
+                  <span
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                      image.is_encrypted
+                        ? "bg-purple-50 text-purple-700 border border-purple-200"
+                        : "bg-blue-50 text-blue-700 border border-blue-200"
+                    }`}
                   >
-                    Open ↗
-                  </a>
+                    {image.is_encrypted ? "🔒 Encrypted" : "Public"}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyCiphertext(image);
+                      }}
+                      disabled={copyingId === image.id}
+                      className="text-[11px] bg-moya-soft hover:bg-moya-primary hover:text-white text-moya-primarydark px-2 py-1 rounded-lg border border-moya-border font-medium transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      title="Salin Ciphertext Base64 (Format: [Versi 0x01][Salt 16B][IV 12B][Ciphertext][Tag 16B])"
+                    >
+                      <span>🔐</span>
+                      <span>{copyingId === image.id ? "..." : "Salin Ciphertext"}</span>
+                    </button>
+                    <a
+                      href={image.publicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-moya-primarydark hover:underline font-medium text-xs flex items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Open ↗
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -255,7 +332,17 @@ export default function ImagesPage() {
               <p className="text-xs text-moya-muted">
                 {previewModalImage.size} · {previewModalImage.updatedAt}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleCopyCiphertext(previewModalImage)}
+                  disabled={copyingId === previewModalImage.id}
+                  className="px-3.5 py-1.5 bg-moya-surface hover:bg-moya-soft border border-moya-border text-moya-primarydark text-xs font-medium rounded-xl transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Salin Ciphertext Base64 (Format: [Versi 0x01][Salt 16B][IV 12B][Ciphertext][Tag 16B])"
+                >
+                  <span>🔐</span>
+                  <span>{copyingId === previewModalImage.id ? "Merangkai..." : "Salin Ciphertext"}</span>
+                </button>
                 <a
                   href={previewModalImage.publicUrl}
                   target="_blank"
@@ -268,7 +355,7 @@ export default function ImagesPage() {
                 <button
                   type="button"
                   onClick={() => setPreviewModalImage(null)}
-                  className="px-3.5 py-1.5 text-xs font-medium bg-moya-soft hover:bg-moya-border text-moya-text rounded-xl transition-colors"
+                  className="px-3.5 py-1.5 text-xs font-medium bg-moya-soft hover:bg-moya-border text-moya-text rounded-xl transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -277,6 +364,14 @@ export default function ImagesPage() {
           </div>
         </div>
       )}
+
+      {/* Notifikasi Toast Mengambang */}
+      <Toast
+        message={toastMessage || ""}
+        isVisible={!!toastMessage}
+        onClose={() => setToastMessage(null)}
+        type={toastType}
+      />
     </div>
   );
 }

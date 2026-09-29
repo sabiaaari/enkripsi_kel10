@@ -22,7 +22,6 @@ export default function NotesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // 1. Logika Pengambilan Data Catatan Terbuka (is_encrypted === false)
-  // Diurutkan berdasarkan status pin terlebih dahulu (is_pinned descending), lalu tanggal terbaru (created_at descending)
   const fetchPublicNotes = useCallback(async () => {
     setIsLoading(true);
     setDbError(null);
@@ -33,7 +32,6 @@ export default function NotesPage() {
         .from("diary_notes")
         .select("*")
         .eq("is_encrypted", false)
-        .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
 
       let { data, error } = await query;
@@ -98,60 +96,6 @@ export default function NotesPage() {
     fetchPublicNotes();
   }, [fetchPublicNotes]);
 
-  // 2. Aksi Toggle Pin / Unpin Catatan
-  const handleTogglePin = async (id: string, currentPinStatus: boolean) => {
-    const nextStatus = !currentPinStatus;
-
-    // Pembaruan UI Optimistik (langsung urutkan catatan tersemat ke bagian teratas)
-    setNotes((prev) =>
-      prev
-        .map((n) => (n.id === id ? { ...n, is_pinned: nextStatus } : n))
-        .sort((a, b) => {
-          if (a.is_pinned === b.is_pinned) {
-            return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-          }
-          return a.is_pinned ? -1 : 1;
-        })
-    );
-
-    try {
-      // 1. Coba update kolom 'is_pinned' di Supabase
-      const { error: updateError } = await supabase
-        .from("diary_notes")
-        .update({ is_pinned: nextStatus })
-        .eq("id", id);
-
-      if (updateError) {
-        // Fallback jika nama kolom di tabel adalah 'pinned'
-        if (updateError.message?.includes("is_pinned") || updateError.code === "42703") {
-          const { error: fbErr } = await supabase
-            .from("diary_notes")
-            .update({ pinned: nextStatus })
-            .eq("id", id);
-          if (fbErr) throw fbErr;
-        } else {
-          throw updateError;
-        }
-      }
-    } catch (err: any) {
-      console.error("Gagal mengubah status pin:", err);
-      // Revert state jika terjadi kesalahan
-      setNotes((prev) =>
-        prev
-          .map((n) => (n.id === id ? { ...n, is_pinned: currentPinStatus } : n))
-          .sort((a, b) => {
-            if (a.is_pinned === b.is_pinned) {
-              return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-            }
-            return a.is_pinned ? -1 : 1;
-          })
-      );
-      alert(
-        "Failed to update pin status. Please ensure the 'is_pinned' column exists in Supabase 'diary_notes' table.\n\nError: " +
-          (err.message || err)
-      );
-    }
-  };
 
   // Hapus catatan terbuka
   const handleDeleteNote = async (id: string) => {
@@ -292,23 +236,7 @@ export default function NotesPage() {
               </Link>
 
               <div className="flex items-center justify-between pt-3 mt-3 border-t border-moya-border text-xs">
-                {/* Tombol Aksi Pin / Unpin */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleTogglePin(note.id, note.is_pinned);
-                  }}
-                  title={note.is_pinned ? "Unpin note" : "Pin note to top"}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
-                    note.is_pinned
-                      ? "bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200 font-medium shadow-xs"
-                      : "bg-moya-bg text-moya-muted hover:text-moya-text border-moya-border hover:bg-moya-soft"
-                  }`}
-                >
-                  <span>📌</span>
-                  <span>{note.is_pinned ? "Pinned" : "Pin"}</span>
-                </button>
+
 
                 <div className="flex items-center gap-2">
                   <button

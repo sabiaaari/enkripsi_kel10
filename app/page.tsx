@@ -64,58 +64,60 @@ export default function RootPage() {
 
   // Tampilan Landing Page untuk pengunjung yang belum terautentikasi
   return (
-    <div className="min-h-screen bg-moya-bg text-moya-text flex flex-col justify-between -mx-6 -my-8 md:-mx-10 md:-my-10 px-6 py-6 md:px-12 md:py-8">
+    <div className="w-full min-h-screen bg-moya-bg text-moya-text flex flex-col justify-between">
       {/* 1. Simple Navbar */}
-      <header className="flex items-center justify-between border-b border-moya-border pb-5 max-w-6xl w-full mx-auto">
-        <Link href="/" className="flex items-center gap-2.5 focus-ring rounded-lg">
-          <YarnMark size={28} />
-          <span className="font-display text-2xl font-semibold tracking-tight text-moya-text">
-            MOYA
-          </span>
-        </Link>
+      <header className="w-full border-b border-moya-border">
+        <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 md:px-8 py-4 sm:py-5 flex items-center justify-between gap-3">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 focus-ring rounded-lg shrink-0">
+            <YarnMark size={28} />
+            <span className="font-display text-xl sm:text-2xl font-semibold tracking-tight text-moya-text">
+              MOYA
+            </span>
+          </Link>
 
-        <nav className="flex items-center gap-3 sm:gap-5">
-          <Link
-            href="/login"
-            className="text-sm font-medium text-moya-text hover:text-moya-primarydark transition-colors px-2 py-1.5 focus-ring rounded-lg"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/register"
-            className="text-sm font-medium bg-moya-primary hover:bg-moya-primarydark text-white px-5 py-2.5 rounded-xl transition-colors shadow-card focus-ring"
-          >
-            Sign Up Free
-          </Link>
-        </nav>
+          <nav className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <Link
+              href="/login"
+              className="text-xs sm:text-sm font-medium text-moya-text hover:text-moya-primarydark transition-colors px-2 py-1.5 focus-ring rounded-lg"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              className="text-xs sm:text-sm font-medium bg-moya-primary hover:bg-moya-primarydark text-white px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl transition-colors shadow-card focus-ring whitespace-nowrap"
+            >
+              Sign Up Free
+            </Link>
+          </nav>
+        </div>
       </header>
 
       {/* 2. Hero Section */}
-      <main className="max-w-5xl w-full mx-auto my-12 md:my-20 space-y-16">
-        <section className="text-center space-y-6 max-w-3xl mx-auto">
+      <main className="w-full flex-1 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 my-10 sm:my-16 md:my-20 space-y-12 sm:space-y-16">
+        <section className="text-center space-y-5 sm:space-y-6 max-w-3xl mx-auto">
           {/* Main Headline */}
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl text-moya-text leading-tight tracking-tight">
+          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-moya-text leading-tight tracking-tight">
             Your Private Thoughts,{" "}
             <span className="text-moya-primarydark italic">Truly Private.</span>
           </h1>
 
           {/* Sub-headline */}
-          <p className="text-base sm:text-lg text-moya-muted max-w-2xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-base md:text-lg text-moya-muted max-w-2xl mx-auto leading-relaxed">
             Even we cannot read your data. Protected with military-grade encryption
             directly inside your browser before ever touching the internet.
           </p>
 
           {/* Call to Action (CTA) */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-3 sm:gap-3.5 pt-2 w-full max-w-md md:max-w-none mx-auto">
             <Link
               href="/register"
-              className="w-full sm:w-auto px-8 py-3.5 bg-moya-primary hover:bg-moya-primarydark text-white rounded-xl font-medium text-sm sm:text-base transition-colors shadow-soft focus-ring text-center"
+              className="w-full md:w-auto px-6 sm:px-8 py-3 sm:py-3.5 bg-moya-primary hover:bg-moya-primarydark text-white rounded-xl font-medium text-sm sm:text-base transition-colors shadow-soft focus-ring text-center"
             >
               Start Writing (Sign Up)
             </Link>
             <a
               href="#features"
-              className="w-full sm:w-auto px-7 py-3.5 bg-moya-surface hover:bg-moya-soft border border-moya-border text-moya-text rounded-xl font-medium text-sm sm:text-base transition-colors focus-ring text-center"
+              className="w-full md:w-auto px-6 sm:px-7 py-3 sm:py-3.5 bg-moya-surface hover:bg-moya-soft border border-moya-border text-moya-text rounded-xl font-medium text-sm sm:text-base transition-colors focus-ring text-center"
             >
               Learn About Security
             </a>
@@ -180,29 +182,30 @@ export default function RootPage() {
                   documents, fully encrypted client-side before storage.
                 </p>
               </div>
-
             </div>
           </div>
         </section>
       </main>
 
       {/* 4. Simple Footer */}
-      <footer className="border-t border-moya-border pt-6 pb-2 max-w-6xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-moya-muted">
-        <div className="flex items-center gap-2">
-          <YarnMark size={16} />
-          <span>© 2026 MOYA — Make Own Yarns. Zero-Knowledge Private Workspace.</span>
-        </div>
+      <footer className="w-full border-t border-moya-border mt-auto">
+        <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 md:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-moya-muted text-center sm:text-left">
+          <div className="flex items-center gap-2 justify-center sm:justify-start">
+            <YarnMark size={16} />
+            <span>© 2026 MOYA — Make Own Yarns. Zero-Knowledge Private Workspace.</span>
+          </div>
 
-        <div className="flex items-center gap-5">
-          <a href="#features" className="hover:text-moya-text transition-colors">
-            Security
-          </a>
-          <Link href="/login" className="hover:text-moya-text transition-colors">
-            Sign In
-          </Link>
-          <Link href="/register" className="hover:text-moya-text transition-colors">
-            Sign Up
-          </Link>
+          <div className="flex items-center gap-4 sm:gap-5 justify-center">
+            <a href="#features" className="hover:text-moya-text transition-colors">
+              Security
+            </a>
+            <Link href="/login" className="hover:text-moya-text transition-colors">
+              Sign In
+            </Link>
+            <Link href="/register" className="hover:text-moya-text transition-colors">
+              Sign Up
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

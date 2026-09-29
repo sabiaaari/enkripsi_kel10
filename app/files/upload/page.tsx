@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
-import { encryptFileBuffer } from "@/utils/crypto";
+import { encryptDiary } from "@/utils/crypto";
 import { supabase } from "@/utils/supabase";
 import { useMasterPassword } from "@/context/MasterPasswordContext";
 
@@ -76,12 +76,13 @@ function UploadContent() {
         );
       }
 
-      const filePath = `${user.id}/${file.name}`;
+      const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${user.id}/${Date.now()}_${safeFileName}`;
 
       if (isPrivate) {
         // --- ALUR BERKAS RAHASIA (ZERO-KNOWLEDGE AES-256-GCM) ---
         const fileBuffer = await file.arrayBuffer();
-        const { ciphertext, salt, nonce } = await encryptFileBuffer(
+        const { ciphertext, salt, nonce } = await encryptDiary(
           fileBuffer,
           masterPassword!
         );

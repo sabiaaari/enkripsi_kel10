@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/utils/supabase";
 import { useMasterPassword } from "@/context/MasterPasswordContext";
-import { encryptFileBuffer } from "@/utils/crypto";
+import { encryptDiary } from "@/utils/crypto";
 import { encryptPixelsECB, encryptPixelsSecure } from "@/utils/imageCipher";
 
 function formatFileSize(bytes?: number | null): string {
@@ -167,7 +167,7 @@ export default function CryptoLabPage() {
       }
 
       const fileBuffer = await selectedFile.arrayBuffer();
-      const { ciphertext, salt, nonce } = await encryptFileBuffer(fileBuffer, pwd);
+      const { ciphertext, salt, nonce } = await encryptDiary(fileBuffer, pwd);
 
       const filePath = `${user.id}/${Date.now()}_${selectedFile.name}`;
       const encryptedBlob = new Blob([ciphertext as any], {

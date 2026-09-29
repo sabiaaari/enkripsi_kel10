@@ -53,26 +53,58 @@ export default function PrivateNotesPage() {
 
       const rows: any[] = data || [];
 
-      // Resolusi judul catatan (jika master password ada di RAM dan judul masih default, dekripsi baris pertama untuk mengambil judul)
+      // Resolusi judul catatan dengan logika Backward Compatibility
       const mappedNotes: PrivateNoteItem[] = await Promise.all(
         rows.map(async (row) => {
           let title = row.title;
 
-          // Jika judul default atau belum diset dan masterPassword tersedia, coba ekstrak dari [Judul]
-          if ((!title || title === "Secret Note" || title === "Untitled Note") && masterPassword && row.content) {
+          // 1. Dukungan Kompatibilitas Mundur: jika ada kolom encrypted_title terpisah
+          if (
+            row.encrypted_title &&
+            (row.title_salt || row.salt) &&
+            (row.title_nonce || row.nonce || row.iv) &&
+            masterPassword
+          ) {
             try {
-              const plain = await decryptDiary(
-                row.content,
-                row.salt,
-                row.nonce || row.iv,
+              const plainTitle = (await decryptDiary(
+                row.encrypted_title,
+                row.title_salt || row.salt,
+                row.title_nonce || row.nonce || row.iv,
                 masterPassword
-              );
+              )) as string;
+              if (plainTitle && plainTitle.trim().length > 0) {
+                title = plainTitle.trim();
+              }
+            } catch (err) {
+              console.warn("Lewati dekripsi metadata encrypted_title karena gagal:", err);
+            }
+          }
+
+          // 2. Jika judul masih default/kosong dan berkas memiliki salt + nonce valid:
+          // Lewati jika salt/nonce tidak ada (versi lama) dan langsung gunakan judul asli
+          const noteSalt = row.salt;
+          const noteNonce = row.nonce || row.iv;
+
+          if (
+            (!title || title === "Secret Note" || title === "Untitled Note") &&
+            masterPassword &&
+            row.content &&
+            noteSalt &&
+            noteNonce
+          ) {
+            try {
+              const plain = (await decryptDiary(
+                row.content,
+                noteSalt,
+                noteNonce,
+                masterPassword
+              )) as string;
               if (plain.startsWith("[") && plain.includes("]\n\n")) {
                 const endIdx = plain.indexOf("]\n\n");
                 title = plain.slice(1, endIdx);
               }
             } catch (e) {
-              // Abaikan jika dekripsi gagal di list
+              // Abaikan jika dekripsi gagal di list agar tidak menghalangi rendering daftar
             }
           }
 

@@ -3,7 +3,31 @@
 import React, { useState, useEffect } from "react";
 import { useMasterPassword } from "@/context/MasterPasswordContext";
 import { supabase } from "@/utils/supabase";
-import { decryptDiary } from "@/utils/crypto";
+import { encryptDiary, decryptDiary } from "@/utils/crypto";
+
+const VAULT_CHALLENGE_STRING = "MOYA_VALID";
+
+async function createVaultChallenge(password: string) {
+  const enc = await encryptDiary(VAULT_CHALLENGE_STRING, password);
+  return {
+    ciphertext: enc.content,
+    salt: enc.salt,
+    iv: enc.iv,
+    nonce: enc.nonce,
+  };
+}
+
+async function verifyVaultChallenge(challenge: any, password: string): Promise<boolean> {
+  try {
+    const cipher = challenge.ciphertext || challenge.content;
+    const salt = challenge.salt;
+    const iv = challenge.iv || challenge.nonce;
+    const decrypted = await decryptDiary(cipher, salt, iv, password);
+    return decrypted === VAULT_CHALLENGE_STRING;
+  } catch {
+    return false;
+  }
+}
 
 export default function MasterPasswordModal() {
   const { isModalOpen, setMasterPassword, closeModal } = useMasterPassword();
@@ -11,14 +35,63 @@ export default function MasterPasswordModal() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [hasExistingVault, setHasExistingVault] = useState<boolean>(true);
 
-  // Reset input dan error saat modal dibuka/ditutup
+  // Reset input dan error saat modal dibuka/ditutup & cek status brankas
   useEffect(() => {
     if (isModalOpen) {
       setInputPassword("");
       setError(null);
       setShowPassword(false);
       setIsVerifying(false);
+
+      const checkVaultStatus = async () => {
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          const userId = user?.id || "default";
+
+          // 1. Cek LocalStorage
+          const localChallenge = localStorage.getItem(`moya_vault_challenge_${userId}`);
+          if (localChallenge) {
+            setHasExistingVault(true);
+            return;
+          }
+
+          // 2. Cek user_metadata di Supabase
+          if (user?.user_metadata?.vault_challenge) {
+            setHasExistingVault(true);
+            localStorage.setItem(
+              `moya_vault_challenge_${userId}`,
+              JSON.stringify(user.user_metadata.vault_challenge)
+            );
+            return;
+          }
+
+          // 3. Cek apakah ada catatan terenkripsi sebelumnya di database
+          if (user?.id) {
+            const { data: notes } = await supabase
+              .from("diary_notes")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("is_encrypted", true)
+              .limit(1);
+
+            if (notes && notes.length > 0) {
+              setHasExistingVault(true);
+              return;
+            }
+          }
+
+          // Jika tidak ada challenge maupun data lama, brankas baru pertama kali dibuat
+          setHasExistingVault(false);
+        } catch {
+          setHasExistingVault(true);
+        }
+      };
+
+      checkVaultStatus();
     }
   }, [isModalOpen]);
 
@@ -55,56 +128,100 @@ export default function MasterPasswordModal() {
     setError(null);
 
     try {
-      // 1. Fetch 1 private note row from diary_notes belonging to user
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
-      let query = supabase
-        .from("diary_notes")
-        .select("*")
-        .eq("is_encrypted", true);
+      const userId = user?.id || "default";
+      const storageKey = `moya_vault_challenge_${userId}`;
 
+      // 1. Ambil token challenge tersimpan (LocalStorage atau user_metadata)
+      let challenge: any = null;
+      const rawLocal = localStorage.getItem(storageKey);
+      if (rawLocal) {
+        try {
+          challenge = JSON.parse(rawLocal);
+        } catch {
+          challenge = null;
+        }
+      }
+
+      if (!challenge && user?.user_metadata?.vault_challenge) {
+        challenge = user.user_metadata.vault_challenge;
+        localStorage.setItem(storageKey, JSON.stringify(challenge));
+      }
+
+      // 2. Kasus A: Challenge token ditemukan -> Lakukan Challenge-Response Verification
+      if (challenge && challenge.ciphertext && challenge.salt && challenge.iv) {
+        const isValid = await verifyVaultChallenge(challenge, passwordToTest);
+        if (!isValid) {
+          setInputPassword("");
+          const errorMsg = "Kata sandi brankas salah!";
+          setError(errorMsg);
+          alert(errorMsg);
+          return;
+        }
+
+        // Dekripsi berhasil: simpan ke state RAM dan buka brankas
+        setMasterPassword(passwordToTest);
+        setInputPassword("");
+        setError(null);
+        return;
+      }
+
+      // 3. Kasus B: Challenge belum ada tapi pengguna punya data catatan privat lama (Migrasi)
       if (user?.id) {
-        query = query.eq("user_id", user.id);
-      }
+        const { data: sampleNotes } = await supabase
+          .from("diary_notes")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("is_encrypted", true)
+          .order("created_at", { ascending: false })
+          .limit(1);
 
-      const { data: sampleNotes, error: fetchError } = await query
-        .order("created_at", { ascending: false })
-        .limit(1);
+        if (sampleNotes && sampleNotes.length > 0) {
+          const sample = sampleNotes[0];
+          const cipher = sample.content || sample.encrypted_content;
+          const salt = sample.salt;
+          const nonce = sample.nonce || sample.iv;
 
-      if (fetchError) {
-        console.error("Failed to retrieve sample data for validation:", fetchError);
-        throw new Error(fetchError.message || "Failed to verify note.");
-      }
+          if (cipher && salt && nonce) {
+            try {
+              await decryptDiary(cipher, salt, nonce, passwordToTest);
+            } catch (decryptErr) {
+              setInputPassword("");
+              const errorMsg = "Kata sandi brankas salah!";
+              setError(errorMsg);
+              alert(errorMsg);
+              return;
+            }
 
-      // 2. Decryption Trial (Try-Catch)
-      if (sampleNotes && sampleNotes.length > 0) {
-        const sample = sampleNotes[0];
-        const cipher = sample.content || sample.encrypted_content;
-        const salt = sample.salt;
-        const nonce = sample.nonce || sample.iv;
-        const authTag = sample.auth_tag;
+            // Sandi lama benar! Buat token challenge untuk mempercepat verifikasi masa depan
+            const newChallenge = await createVaultChallenge(passwordToTest);
+            localStorage.setItem(storageKey, JSON.stringify(newChallenge));
+            await supabase.auth.updateUser({
+              data: { vault_challenge: newChallenge },
+            });
 
-        if (cipher && salt && nonce) {
-          try {
-            await decryptDiary(cipher, salt, nonce, passwordToTest);
-          } catch (decryptErr) {
+            setMasterPassword(passwordToTest);
             setInputPassword("");
-            const errorMsg = "Access Denied: Incorrect Master Password!";
-            setError(errorMsg);
-            alert(errorMsg);
+            setError(null);
             return;
           }
         }
-      } else {
-        // 3. Empty vault handling
-        console.info(
-          "Vault empty (no encrypted notes yet). Accepting password for this session."
-        );
       }
 
-      // On success (or empty vault): store password in context and close modal
+      // 4. Kasus C: Pengguna baru pertama kali membuat Master Password
+      const newChallenge = await createVaultChallenge(passwordToTest);
+      localStorage.setItem(storageKey, JSON.stringify(newChallenge));
+
+      if (user) {
+        await supabase.auth.updateUser({
+          data: { vault_challenge: newChallenge },
+        });
+      }
+
+      // Simpan ke RAM dan buka brankas
       setMasterPassword(passwordToTest);
       setInputPassword("");
       setError(null);
@@ -140,10 +257,18 @@ export default function MasterPasswordModal() {
           </div>
           <div>
             <h2 className="font-display text-2xl text-moya-text">
-              Unlock Vault
+              {hasExistingVault ? "Unlock Vault" : "Set Up Vault Password"}
             </h2>
             <p className="text-xs text-moya-muted mt-1 leading-relaxed">
-              Enter your <strong className="text-moya-text">Master Password</strong>
+              {hasExistingVault ? (
+                <>
+                  Enter your <strong className="text-moya-text">Master Password</strong>
+                </>
+              ) : (
+                <>
+                  Create a <strong className="text-moya-text">Master Password</strong> to secure your private vault
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -152,7 +277,7 @@ export default function MasterPasswordModal() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-moya-text mb-1.5">
-              Master Password
+              {hasExistingVault ? "Master Password" : "Create Master Password"}
             </label>
             <div className="relative">
               <input
@@ -210,6 +335,10 @@ export default function MasterPasswordModal() {
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Verifying...</span>
+                </>
+              ) : hasExistingVault ? (
+                <>
+                  <span>🔐</span> Unlock Vault
                 </>
               ) : (
                 <>
