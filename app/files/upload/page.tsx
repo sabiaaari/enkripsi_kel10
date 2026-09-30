@@ -91,9 +91,12 @@ function UploadContent() {
           type: "application/octet-stream",
         });
 
+        const baseName = safeFileName.replace(/\.[^/.]+$/, "");
+        const encryptedFilePath = `${user.id}/${Date.now()}_${baseName}.enc`;
+
         const { error: uploadError } = await supabase.storage
           .from("diary-files")
-          .upload(filePath, encryptedData, {
+          .upload(encryptedFilePath, encryptedData, {
             contentType: "application/octet-stream",
             upsert: true,
           });
@@ -108,7 +111,7 @@ function UploadContent() {
             original_filename: file.name,
             file_size: file.size,
             mime_type: file.type || "application/octet-stream",
-            storage_path: filePath,
+            storage_path: encryptedFilePath,
             is_encrypted: true,
             algorithm: "AES-256-GCM",
             salt: salt,
@@ -117,7 +120,7 @@ function UploadContent() {
         ]);
 
         if (insertError) {
-          await supabase.storage.from("diary-files").remove([filePath]);
+          await supabase.storage.from("diary-files").remove([encryptedFilePath]);
           throw new Error(
             `Failed to save file metadata to encrypted_files: ${insertError.message}`
           );
