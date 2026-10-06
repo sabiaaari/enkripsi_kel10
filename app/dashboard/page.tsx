@@ -152,7 +152,7 @@ export default function DashboardPage() {
       <div className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <p className="text-moya-muted text-xs sm:text-sm mb-1">
-            {user ? `Hello, ${user.email?.split("@")[0]} 👋` : "Welcome to MOYA"}
+            {user ? `Hello, ${user.user_metadata?.username || user.email?.split("@")[0]} 👋` : "Welcome to MOYA"}
           </p>
           <h1 className="font-display text-2xl sm:text-3xl text-moya-text break-words">
             What are you keeping today?
@@ -162,8 +162,11 @@ export default function DashboardPage() {
         <div className="self-start md:self-auto">
           {user ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs bg-moya-soft text-moya-primarydark px-3 py-1.5 rounded-xl border border-moya-border truncate max-w-[220px] sm:max-w-xs" title={user.email}>
-                {user.email}
+              <span
+                className="text-xs bg-moya-soft text-moya-primarydark px-3 py-1.5 rounded-xl border border-moya-border truncate max-w-[220px] sm:max-w-xs"
+                title={user.user_metadata?.username || user.email}
+              >
+                {user.user_metadata?.username || user.email?.split("@")[0]}
               </span>
               <button
                 onClick={handleLogout}
